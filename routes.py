@@ -28,25 +28,28 @@ def inject_global_data():
     
     db = SessionLocal()
     try:
-        # IMPORTANTE: Cambiado a now() en lugar de utcnow() para evitar problemas
-        # de zona horaria (que el servidor crea que ya es mañana)
         today = datetime.now()
         
-        # 1. Buscar a todos los usuarios cuyo mes y día de nacimiento sea HOY
-        # Filtramos a nivel de Python para asegurar 100% de compatibilidad con SQLite y MySQL
         all_users = db.query(User).all()
         bday_users = []
         
         for u in all_users:
-            if u.birth_date and u.birth_date.month == today.month and u.birth_date.day == today.day:
-                # Preparamos el mensaje personalizado y lo codificamos para enlaces de WhatsApp
-                mensaje = f"¡Hola {u.first_name}! ¡Feliz Cumpleaños! Te deseamos en la Tribu de Los Libres esperamos el mejor día junto a tus amig@s y Familia."
-                u.whatsapp_msg = urllib.parse.quote(mensaje)
-                bday_users.append(u)
+            if u.birth_date:
+                # Manejo robusto: Si SQLite devuelve un string en vez de objeto Datetime
+                b_date = u.birth_date
+                if isinstance(b_date, str):
+                    try:
+                        b_date = datetime.strptime(b_date.split(' ')[0], '%Y-%m-%d')
+                    except ValueError:
+                        continue 
+                
+                if b_date.month == today.month and b_date.day == today.day:
+                    mensaje = f"¡Hola {u.first_name}! ¡Feliz Cumpleaños! Te deseamos en la Tribu de Los Libres esperamos el mejor día junto a tus amig@s y Familia."
+                    u.whatsapp_msg = urllib.parse.quote(mensaje)
+                    bday_users.append(u)
                 
         context['birthday_users'] = bday_users
         
-        # 2. Obtener al usuario logueado actualmente (Solo si hay sesión activa)
         if 'user_id' in session:
             context['current_user'] = db.query(User).get(session['user_id'])
             
@@ -85,15 +88,22 @@ def admin_required(f):
 @main_bp.route('/')
 def home():
     db = SessionLocal()
-    # Obtener notificaciones activas para el flash en Home
-    now = datetime.utcnow()
-    notifications = db.query(Notification).filter(
+    now = datetime.now()
+    
+    # Consultar notificaciones activas
+    query = db.query(Notification).filter(
         Notification.start_date <= now,
         Notification.end_date >= now,
         Notification.is_active == 1
-    ).all()
+    )
     
-    # Renderizar ANTES de cerrar la base de datos
+    # Lógica de Visibilidad: Si no es admin, solo ve las de "Todos"
+    user_role = session.get('role', 'Visitante')
+    if user_role not in ['Superusuario', 'Administrador']:
+        query = query.filter(Notification.visibility == 'Todos')
+        
+    notifications = query.all()
+    
     html = render_template('home.html', notifications=notifications)
     db.close()
     return html
@@ -105,7 +115,6 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        remember = request.form.get('remember')
         
         db = SessionLocal()
         user = get_user_by_email(db, email)
@@ -131,31 +140,27 @@ def registro():
     if request.method == 'POST':
         db = SessionLocal()
         try:
-            # Procesar el Avatar (Acepta archivo crudo o base64 recortado del editor)
             avatar_filename = 'default.png'
             avatar_base64 = request.form.get('avatar_base64')
             avatar_file = request.files.get('avatar')
             
-            os.makedirs('static/img', exist_ok=True) # Asegurar que la carpeta existe
+            os.makedirs('static/img', exist_ok=True)
 
             if avatar_base64:
-                # Si viene del editor visual (Cropper)
                 header, encoded = avatar_base64.split(",", 1)
                 file_ext = header.split('/')[1].split(';')[0]
-                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}.{file_ext}"
+                unique_filename = f"avatar_{int(datetime.now().timestamp())}.{file_ext}"
                 filepath = os.path.join('static/img', unique_filename)
                 with open(filepath, "wb") as fh:
                     fh.write(base64.b64decode(encoded))
                 avatar_filename = unique_filename
             elif avatar_file and avatar_file.filename != '':
-                # Si viene como archivo tradicional sin editar
                 filename = secure_filename(avatar_file.filename)
-                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}_{filename}"
+                unique_filename = f"avatar_{int(datetime.now().timestamp())}_{filename}"
                 filepath = os.path.join('static/img', unique_filename)
                 avatar_file.save(filepath)
                 avatar_filename = unique_filename
 
-            # Procesar datos básicos
             user_data = {
                 'first_name': request.form.get('first_name'),
                 'last_name1': request.form.get('last_name1'),
@@ -167,7 +172,6 @@ def registro():
                 'avatar': avatar_filename
             }
             
-            # Procesar campos extra dinámicos
             extra_fields_list = []
             field_types = request.form.getlist('extra_field_type[]')
             field_values = request.form.getlist('extra_field_value[]')
@@ -193,8 +197,6 @@ def perfil():
     db = SessionLocal()
     user = db.query(User).get(session['user_id'])
     export_data = prepare_export_data(user)
-    
-    # Renderizar ANTES de cerrar la base de datos para evitar DetachedInstanceError
     html = render_template('perfil.html', user=user, export_data=export_data)
     db.close()
     return html
@@ -207,46 +209,39 @@ def editar_perfil():
     
     if request.method == 'POST':
         try:
-            # Procesar el Avatar (Acepta archivo crudo o base64 recortado del editor)
             avatar_base64 = request.form.get('avatar_base64')
             avatar_file = request.files.get('avatar')
             
             os.makedirs('static/img', exist_ok=True)
 
             if avatar_base64:
-                # Si viene del editor visual (Cropper)
                 header, encoded = avatar_base64.split(",", 1)
                 file_ext = header.split('/')[1].split(';')[0]
-                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}.{file_ext}"
+                unique_filename = f"avatar_{int(datetime.now().timestamp())}.{file_ext}"
                 filepath = os.path.join('static/img', unique_filename)
                 with open(filepath, "wb") as fh:
                     fh.write(base64.b64decode(encoded))
                 user.avatar = unique_filename
             elif avatar_file and avatar_file.filename != '':
-                # Si viene como archivo tradicional
                 filename = secure_filename(avatar_file.filename)
-                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}_{filename}"
+                unique_filename = f"avatar_{int(datetime.now().timestamp())}_{filename}"
                 filepath = os.path.join('static/img', unique_filename)
                 avatar_file.save(filepath)
                 user.avatar = unique_filename
 
-            # Actualizar datos básicos
             user.first_name = request.form.get('first_name')
             user.last_name1 = request.form.get('last_name1')
             user.last_name2 = request.form.get('last_name2')
             user.phone = request.form.get('phone')
             
-            # Actualizar fecha de nacimiento
             day = request.form.get('day')
             month = request.form.get('month')
             year = request.form.get('year')
             if day and month and year:
                 user.birth_date = datetime.strptime(f"{year}-{month}-{day}", '%Y-%m-%d')
             
-            # Limpiar campos dinámicos antiguos para evitar duplicados
             db.query(ExtraField).filter(ExtraField.user_id == user.id).delete()
             
-            # Recopilar e insertar los nuevos campos dinámicos
             field_types = request.form.getlist('extra_field_type[]')
             field_values = request.form.getlist('extra_field_value[]')
             
@@ -256,25 +251,21 @@ def editar_perfil():
                         user_id=user.id,
                         field_type=f_type,
                         value=f_val,
-                        label=f_type # Por defecto usamos el tipo como etiqueta
+                        label=f_type 
                     )
                     db.add(new_field)
             
-            # Actualizar timestamp
             user.updated_at = datetime.utcnow()
-            
             db.commit()
             flash('Perfil actualizado con éxito.', 'success')
-            db.close()
             return redirect(url_for('main.perfil'))
-            
         except Exception as e:
             db.rollback()
             flash(f'Error al actualizar el perfil: {str(e)}', 'danger')
-            db.close()
             return redirect(url_for('main.editar_perfil'))
+        finally:
+            db.close()
 
-    # Si es GET, renderizamos ANTES de cerrar la sesión
     html = render_template('editar_perfil.html', user=user)
     db.close()
     return html
@@ -286,13 +277,178 @@ def dashboard():
     users = db.query(User).all()
     stats = {
         'total': len(users),
-        'recent': db.query(User).filter(User.created_at >= datetime.utcnow().replace(day=1)).count()
+        'recent': db.query(User).filter(User.created_at >= datetime.now().replace(day=1)).count()
     }
     
-    # Renderizar ANTES de cerrar la base de datos
-    html = render_template('dashboard.html', users=users, stats=stats)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    total_notifs = db.query(Notification).count()
+    total_pages = (total_notifs + per_page - 1) // per_page
+    
+    notifs = db.query(Notification).order_by(Notification.id.desc()).offset((page-1)*per_page).limit(per_page).all()
+    
+    now = datetime.now()
+    
+    html = render_template('dashboard.html', users=users, stats=stats, notifs=notifs, page=page, total_pages=total_pages, now=now)
     db.close()
     return html
+
+# --- RUTAS DE ADMINISTRACIÓN (DASHBOARD) ---
+
+@main_bp.route('/delete_user/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    db = SessionLocal()
+    try:
+        user = db.query(User).get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'})
+        
+        if user.email in ['kenth1977@gmail.com', 'lthikingcr@gmail.com']:
+            return jsonify({'success': False, 'message': 'Acción denegada: Superusuario maestro protegido'})
+            
+        db.delete(user)
+        db.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        db.close()
+
+@main_bp.route('/admin_edit_user/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_edit_user(user_id):
+    db = SessionLocal()
+    try:
+        user = db.query(User).get(user_id)
+        if user:
+            user.first_name = request.form.get('first_name')
+            user.last_name1 = request.form.get('last_name1')
+            user.last_name2 = request.form.get('last_name2')
+            user.email = request.form.get('email')
+            
+            new_role = request.form.get('role')
+            if user.email in ['kenth1977@gmail.com', 'lthikingcr@gmail.com']:
+                user.role = 'Superusuario'
+            else:
+                user.role = new_role
+                
+            db.commit()
+            flash('Usuario actualizado correctamente', 'success')
+        else:
+            flash('Usuario no encontrado', 'danger')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error actualizando usuario: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('main.dashboard'))
+
+# --- NOTIFICACIONES ---
+@main_bp.route('/create_notification', methods=['POST'])
+@admin_required
+def create_notification():
+    db = SessionLocal()
+    try:
+        image_file = request.files.get('image')
+        image_filename = None
+        
+        if image_file and image_file.filename != '':
+            os.makedirs('static/uploads', exist_ok=True)
+            filename = secure_filename(image_file.filename)
+            unique_filename = f"notif_{int(datetime.now().timestamp())}_{filename}"
+            filepath = os.path.join('static/uploads', unique_filename)
+            image_file.save(filepath)
+            image_filename = unique_filename
+            
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        
+        parsed_start = datetime.strptime(start_date_str, '%Y-%m-%d')
+        
+        new_notif = Notification(
+            image=image_filename,
+            start_date=parsed_start,
+            end_date=datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59),
+            notification_type=request.form.get('notification_type'),
+            message=request.form.get('message'),
+            visibility=request.form.get('visibility', 'Todos'),
+            is_active=1
+        )
+        
+        db.add(new_notif)
+        db.commit()
+        
+        # Feedback inteligente al usuario según si la notificación es para hoy o el futuro
+        if parsed_start.date() > datetime.now().date():
+            flash('Anuncio programado exitosamente. Se publicará en la fecha indicada.', 'success')
+        else:
+            flash('Anuncio publicado correctamente y visible en el inicio.', 'success')
+            
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al publicar notificación: {str(e)}', 'danger')
+    finally:
+        db.close()
+        
+    return redirect(url_for('main.dashboard') + '#notifyContent')
+
+@main_bp.route('/edit_notification/<int:notif_id>', methods=['POST'])
+@admin_required
+def edit_notification(notif_id):
+    db = SessionLocal()
+    try:
+        notif = db.query(Notification).get(notif_id)
+        if notif:
+            parsed_start = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+            notif.start_date = parsed_start
+            notif.end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            notif.notification_type = request.form.get('notification_type')
+            notif.message = request.form.get('message')
+            notif.visibility = request.form.get('visibility', 'Todos')
+            notif.is_active = int(request.form.get('is_active', 1))
+            
+            image_file = request.files.get('image')
+            if image_file and image_file.filename != '':
+                os.makedirs('static/uploads', exist_ok=True)
+                filename = secure_filename(image_file.filename)
+                unique_filename = f"notif_{int(datetime.now().timestamp())}_{filename}"
+                filepath = os.path.join('static/uploads', unique_filename)
+                image_file.save(filepath)
+                notif.image = unique_filename
+                
+            db.commit()
+            
+            if parsed_start.date() > datetime.now().date():
+                flash('Anuncio actualizado y programado para el futuro.', 'success')
+            else:
+                flash('Anuncio actualizado correctamente.', 'success')
+        else:
+            flash('Notificación no encontrada.', 'danger')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al actualizar notificación: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('main.dashboard') + '#notifyContent')
+
+@main_bp.route('/delete_notification/<int:notif_id>', methods=['DELETE'])
+@admin_required
+def delete_notification(notif_id):
+    db = SessionLocal()
+    try:
+        notif = db.query(Notification).get(notif_id)
+        if notif:
+            db.delete(notif)
+            db.commit()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'message': 'Notificación no encontrada'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        db.close()
 
 # --- FUNCIONES DE EXPORTACIÓN ---
 
@@ -340,12 +496,8 @@ def change_password_route():
 @login_required
 def verify_password():
     current_pw = request.form.get('current_password')
-    
     db = SessionLocal()
     user = db.query(User).get(session['user_id'])
-    
-    # Valida usando bcrypt contra el hash de la BD
     is_valid = bcrypt.check_password_hash(user.password, current_pw)
     db.close()
-    
     return jsonify({'valid': is_valid})

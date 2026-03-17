@@ -42,11 +42,6 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('main.perfil') }}">Mi Perfil</a>
                         </li>
-                        {% if session.get('role') in ['Superusuario', 'Administrador'] %}
-                            <li class="nav-item">
-                                <a class="nav-link text-danger" href="{{ url_for('main.dashboard') }}">Dashboard</a>
-                            </li>
-                        {% endif %}
                         <li class="nav-item ms-lg-3">
                             <a class="btn bg-orange text-white rounded-pill" href="{{ url_for('main.logout') }}">Salir</a>
                         </li>
@@ -134,11 +129,11 @@
                                      style="width: 130px; height: 130px; object-fit: cover; background: white;"
                                      onerror="this.src='https://placehold.co/150x150?text=Avatar'">
                                 
-                                <p class="lead fw-bold mb-4">¡Feliz Cumpleaños! Te deseamos en la Tribu de Los Libres esperamos el mejor día junto a tus amig@s y Familia.</p>
+                                <p class="lead fw-bold mb-4">¡Hoy es su día especial!</p>
                                 
                                 <!-- Validar que el usuario no se mande mensaje a sí mismo. Visitantes también pueden saludar -->
                                 {% if not current_user or current_user.id != bday_user.id %}
-                                <a href="https://wa.me/{{ bday_user.phone | replace('+', '') | replace(' ', '') }}?text=¡Hola%20{{ bday_user.first_name }}!%20¡Feliz%20Cumpleaños!%20🥳🎂%20Te%20deseo%20lo%20mejor%20en%20tu%20día." 
+                                <a href="https://wa.me/{{ bday_user.phone | replace('+', '') | replace(' ', '') }}?text={{ bday_user.whatsapp_msg }}" 
                                    target="_blank" class="btn btn-light text-orange rounded-pill btn-lg fw-bold shadow-sm w-100">
                                     <i class="bi bi-whatsapp text-success"></i> Saludar por WhatsApp
                                 </a>

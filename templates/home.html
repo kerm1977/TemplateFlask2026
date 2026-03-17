@@ -4,35 +4,62 @@
 {% block title %}Inicio{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10 text-center">
-        <!-- Notificadores Especiales (Flash de Base de Datos) -->
+<!-- Tiras Informativas (Notificaciones) -->
+<div class="row mb-4" id="notifications-container">
+    <div class="col-12 px-0">
         {% if notifications %}
             {% for note in notifications %}
-                <div class="glass-card p-4 mb-4 border-orange animate__animated animate__backInDown" style="border-left: 5px solid var(--orange-primary);">
-                    <div class="row align-items-center">
+                
+                <!-- Lógica de Diseño para "Fallecimiento" u otros -->
+                {% set is_death = note.notification_type == 'Fallecimiento' %}
+                {% set bg_style = 'background: linear-gradient(90deg, #111111 0%, #3a1c00 100%); color: #f8f9fa;' if is_death else 'background: linear-gradient(90deg, var(--orange-secondary) 0%, var(--orange-primary) 100%); color: white;' %}
+                
+                <!-- La notificación inicia con display:none para evitar parpadeos, JS la mostrará si no está ocultada -->
+                <div class="alert alert-dismissible fade show border-0 rounded-0 shadow-sm align-items-center mb-1 notif-banner" 
+                     role="alert" 
+                     id="notif-{{ note.id }}"
+                     data-notif-id="{{ note.id }}"
+                     style="{{ bg_style }} display: none;">
+                    
+                    <div class="d-flex align-items-center w-100">
                         {% if note.image %}
-                            <div class="col-md-3 mb-3 mb-md-0">
-                                <img src="{{ url_for('static', filename='uploads/' + note.image) }}" 
-                                     alt="{{ note.notification_type }}" 
-                                     class="img-fluid rounded-3 shadow-sm"
-                                     onerror="this.src='https://placehold.co/400x300?text=Notificación'">
-                            </div>
+                        <img src="{{ url_for('static', filename='uploads/' + note.image) }}" 
+                             alt="icon" class="rounded-circle me-3 shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid rgba(255,255,255,0.8);">
+                        {% else %}
+                            <!-- Ícono dinámico según tipo -->
+                            {% if is_death %}
+                                <i class="bi bi-moon-stars-fill fs-3 me-3 text-white opacity-75"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill fs-3 me-3"></i>
+                            {% endif %}
                         {% endif %}
-                        <div class="col-md text-start">
-                            <span class="badge bg-orange mb-2">{{ note.notification_type }}</span>
-                            <h4 class="fw-bold">{{ note.message }}</h4>
-                            <p class="text-muted small mb-0">
-                                <i class="bi bi-calendar-event"></i> Válido hasta: {{ note.end_date.strftime('%d/%m/%Y') }}
-                            </p>
+                        
+                        <div class="flex-grow-1">
+                            <strong class="text-uppercase tracking-wide small opacity-75">{{ note.notification_type }}</strong>
+                            <div class="fw-bold lh-sm mb-1" style="font-size: 1.05rem;">{{ note.message }}</div>
+                            
+                            <!-- Opción Check para no volver a mostrar -->
+                            <div class="form-check mt-1 mb-0">
+                                <input class="form-check-input" type="checkbox" id="hideNotif-{{ note.id }}" onchange="dismissNotif({{ note.id }})" style="border-color: rgba(255,255,255,0.5); background-color: transparent; cursor: pointer;">
+                                <label class="form-check-label small" for="hideNotif-{{ note.id }}" style="cursor:pointer; opacity: 0.9;">
+                                    No volver a mostrar esta notificación
+                                </label>
+                            </div>
                         </div>
+                        
+                        <!-- Botón nativo para cerrar temporalmente (hasta que recargue) -->
+                        <button type="button" class="btn-close btn-close-white opacity-100" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 </div>
             {% endfor %}
         {% endif %}
+    </div>
+</div>
 
+<div class="row justify-content-center">
+    <div class="col-md-10 text-center">
         <!-- Mensaje Principal solicitado -->
-        <div class="glass-card p-5 mt-4">
+        <div class="glass-card p-5 mt-2 animate__animated animate__fadeInUp">
             <h1 class="display-4 fw-bold text-orange">¡Bienvenido!</h1>
             <p class="lead">Este es el home</p>
             <hr class="my-4" style="background-color: var(--orange-primary); height: 2px; opacity: 0.5;">
@@ -40,4 +67,44 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Lógica de "No mostrar más" manejada por el navegador del usuario
+    document.addEventListener('DOMContentLoaded', function() {
+        const banners = document.querySelectorAll('.notif-banner');
+        
+        banners.forEach(banner => {
+            const notifId = banner.getAttribute('data-notif-id');
+            // Verificar en localStorage si el usuario ya descartó esta notificación
+            if (!localStorage.getItem('hide_notif_' + notifId)) {
+                // Si no la ha descartado, la mostramos
+                banner.style.display = 'flex';
+            } else {
+                // Si ya la descartó, nos aseguramos de destruirla visualmente
+                banner.remove();
+            }
+        });
+    });
+
+    // Función que se ejecuta cuando el usuario hace clic en el checkbox
+    function dismissNotif(id) {
+        const checkbox = document.getElementById('hideNotif-' + id);
+        if (checkbox && checkbox.checked) {
+            // Guardar en la memoria del navegador para siempre
+            localStorage.setItem('hide_notif_' + id, 'true');
+            
+            // Ocultar la notificación con una suave transición
+            const banner = document.getElementById('notif-' + id);
+            if (banner) {
+                banner.style.transition = "opacity 0.4s ease";
+                banner.style.opacity = "0";
+                setTimeout(() => { 
+                    banner.remove(); // Destruir elemento tras la animación
+                }, 400);
+            }
+        }
+    }
+</script>
 {% endblock %}

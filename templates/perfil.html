@@ -32,6 +32,13 @@
                     </div>
                     
                     <div class="d-grid gap-2 mt-4">
+                        {% if session.get('role') in ['Superusuario', 'Administrador'] %}
+                        <!-- BOTÓN DE DASHBOARD (Solo visible para admins) -->
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-danger text-white rounded-pill btn-sm shadow-sm mb-2">
+                            <i class="bi bi-speedometer2"></i> Panel Dashboard
+                        </a>
+                        {% endif %}
+                        
                         <a href="{{ url_for('main.editar_perfil') }}" class="btn bg-orange text-white rounded-pill btn-sm">
                             <i class="bi bi-pencil-square"></i> Editar Perfil
                         </a>
@@ -48,7 +55,7 @@
                     </div>
                     
                     <div class="mt-4 text-start small text-muted">
-                        <!-- NUEVO: Fecha de Nacimiento y Edad -->
+                        <!-- Fecha de Nacimiento y Edad -->
                         <p class="mb-1">
                             <i class="bi bi-calendar2-heart text-orange"></i> <strong>Nacimiento:</strong> 
                             {{ user.birth_date.strftime('%d/%m/%Y') if user.birth_date else 'N/A' }}

@@ -1,14 +1,14 @@
 # app.py
 
 import os
-from flask import Flask, session
-from flask_bcrypt import Bcrypt
+from flask import Flask, session, send_from_directory
 from datetime import datetime
 
 # Importaciones locales
 from db import engine, Base, SessionLocal
 from models import User
 from users import bcrypt
+from routes import main_bp
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -17,37 +17,53 @@ app.secret_key = os.urandom(24)
 app.static_folder = 'static'
 app.template_folder = 'templates'
 
+@app.route('/sw.js')
+def serve_sw():
+    """
+    Ruta crítica para PWA: Sirve el Service Worker desde la raíz 
+    aunque el archivo físico esté en la carpeta static.
+    """
+    return send_from_directory(app.static_folder, 'sw.js')
+
+@app.route('/manifest.json')
+def serve_manifest():
+    """Sirve el manifiesto desde la raíz"""
+    return send_from_directory(app.static_folder, 'manifest.json')
+
 def inject_superusers():
     """
-    Inyecta automáticamente 2 superusuarios en la base de datos si no existen.
-    Estos usuarios tienen el rol 'Superusuario' y se crean al iniciar la app.
+    Inyecta automáticamente a los administradores principales en la base de datos.
+    Garantiza que siempre existan y tengan el rol de 'Superusuario'.
     """
     db = SessionLocal()
     try:
+        # Credenciales maestras solicitadas
         superusers_data = [
             {
-                "first_name": "System",
+                "first_name": "Kenth",
                 "last_name1": "Admin",
-                "last_name2": "One",
-                "email": "admin1@sistema.local",
-                "password": "SuperPassword2025!",
+                "last_name2": "Principal",
+                "email": "kenth1977@gmail.com",
+                "password": "CR129x7848n",
                 "phone": "00000000",
-                "birth_date": datetime(1990, 1, 1)
+                "birth_date": datetime(1977, 1, 1)
             },
             {
-                "first_name": "Root",
-                "last_name2": "Admin",
-                "last_name1": "Two",
-                "email": "admin2@sistema.local",
-                "password": "RootSecure2025*",
+                "first_name": "LT",
+                "last_name1": "Hiking",
+                "last_name2": "CR",
+                "email": "lthikingcr@gmail.com",
+                "password": "CR129x7848n",
                 "phone": "00000000",
                 "birth_date": datetime(1990, 1, 1)
             }
         ]
 
         for data in superusers_data:
-            exists = db.query(User).filter(User.email == data['email']).first()
-            if not exists:
+            user = db.query(User).filter(User.email == data['email']).first()
+            
+            if not user:
+                # Si no existen, los creamos con la contraseña encriptada
                 hashed_pw = bcrypt.generate_password_hash(data['password']).decode('utf-8')
                 new_su = User(
                     first_name=data['first_name'],
@@ -60,6 +76,11 @@ def inject_superusers():
                     role='Superusuario'
                 )
                 db.add(new_su)
+            else:
+                # Si ya existían, garantizamos que su rol SIEMPRE sea Superusuario
+                if user.role != 'Superusuario':
+                    user.role = 'Superusuario'
+                    
         db.commit()
     except Exception as e:
         print(f"Error inyectando superusuarios: {e}")
@@ -67,19 +88,18 @@ def inject_superusers():
     finally:
         db.close()
 
-def init_app():
-    """Inicialización de base de datos y componentes"""
-    # Crear tablas si no existen
+# --- INICIALIZACIÓN AUTOMÁTICA ---
+# Al ponerlo dentro de app_context, garantizamos que se ejecute SIEMPRE al arrancar
+# el servidor, independientemente de si usas 'flask run' o 'python app.py'
+with app.app_context():
+    # 1. Crear tablas si no existen
     Base.metadata.create_all(bind=engine)
-    
-    # Inyectar superusuarios
+    # 2. Inyectar superusuarios maestros garantizados
     inject_superusers()
-    
-    # Aquí se registrarán los Blueprints en el siguiente paso
-    from routes import main_bp
-    app.register_blueprint(main_bp)
+
+# Registrar los Blueprints (Rutas)
+app.register_blueprint(main_bp)
 
 if __name__ == '__main__':
-    init_app()
-    # Configuración para correr localmente o en red (Tailscale)
+    # Configuración para correr localmente o en red
     app.run(host='0.0.0.0', port=5000, debug=True)

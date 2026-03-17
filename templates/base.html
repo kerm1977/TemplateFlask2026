@@ -9,6 +9,20 @@
     <!-- Estilos Personalizados -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     
+    <!-- Estilos exclusivos para la tarjeta de Cumpleaños -->
+    <style>
+        .birthday-card-bg {
+            background: linear-gradient(135deg, #ff9a44 0%, #fc6076 100%);
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 15px 35px rgba(255, 140, 0, 0.4);
+        }
+        .birthday-check-scale {
+            transform: scale(1.3); 
+            cursor: pointer;
+        }
+    </style>
+
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -99,11 +113,106 @@
         <i class="bi bi-arrow-left-short fs-2"></i>
     </button>
 
+    <!-- MODAL DE CUMPLEAÑOS GLOBAL (Se inyecta automáticamente si hay cumpleañeros) -->
+    {% if birthday_users %}
+    <div class="modal fade" id="globalBirthdayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 birthday-card-bg">
+                <div class="modal-body text-center p-5">
+                    
+                    <!-- Carrusel por si hay múltiples cumpleañeros el mismo día -->
+                    <div id="carouselBirthdays" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for bday_user in birthday_users %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <i class="bi bi-gift-fill display-1 mb-3 text-white shadow-sm" style="filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3));"></i>
+                                <h1 class="fw-bold fw-bolder mb-1">¡Feliz Cumpleaños!</h1>
+                                <h2 class="mb-4">{{ bday_user.first_name }} {{ bday_user.last_name1 }} {{ bday_user.last_name2 }}</h2>
+                                
+                                <img src="{{ url_for('static', filename='img/' + (bday_user.avatar if bday_user.avatar else 'default.png')) }}" 
+                                     class="rounded-circle border border-4 border-light p-1 mb-4 shadow" 
+                                     style="width: 130px; height: 130px; object-fit: cover; background: white;"
+                                     onerror="this.src='https://placehold.co/150x150?text=Avatar'">
+                                
+                                <p class="lead fw-bold mb-4">¡Feliz Cumpleaños! Te deseamos en la Tribu de Los Libres esperamos el mejor día junto a tus amig@s y Familia.</p>
+                                
+                                <!-- Validar que el usuario no se mande mensaje a sí mismo. Visitantes también pueden saludar -->
+                                {% if not current_user or current_user.id != bday_user.id %}
+                                <a href="https://wa.me/{{ bday_user.phone | replace('+', '') | replace(' ', '') }}?text=¡Hola%20{{ bday_user.first_name }}!%20¡Feliz%20Cumpleaños!%20🥳🎂%20Te%20deseo%20lo%20mejor%20en%20tu%20día." 
+                                   target="_blank" class="btn btn-light text-orange rounded-pill btn-lg fw-bold shadow-sm w-100">
+                                    <i class="bi bi-whatsapp text-success"></i> Saludar por WhatsApp
+                                </a>
+                                {% else %}
+                                <div class="btn btn-light text-orange rounded-pill btn-lg fw-bold shadow-sm w-100 disabled">
+                                    <i class="bi bi-stars text-warning"></i> ¡A disfrutar tu día!
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Controles del carrusel solo si hay más de 1 cumpleañero -->
+                        {% if birthday_users|length > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselBirthdays" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Anterior</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carouselBirthdays" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Siguiente</span>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Controles Inferiores (Cerrar / No volver a mostrar) -->
+                    <div class="mt-5">
+                        <div class="form-check d-flex justify-content-center align-items-center mb-3">
+                            <input class="form-check-input me-2 birthday-check-scale" type="checkbox" id="dontShowBirthday">
+                            <label class="form-check-label small fw-bold" for="dontShowBirthday" style="cursor: pointer;">
+                                No volver a mostrar hoy
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-outline-light rounded-pill px-5" data-bs-dismiss="modal">Cerrar Tarjeta</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Scripts Base (Local) -->
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/validaciones.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cropper.min.js') }}"></script>
 
+    <!-- Lógica del Modal de Cumpleaños -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const birthdayModalEl = document.getElementById('globalBirthdayModal');
+            if (birthdayModalEl) {
+                // Generar una llave única para HOY (ej. "hideBirthday_2026-03-16")
+                const today = new Date().toISOString().split('T')[0]; 
+                const storageKey = 'hideBirthday_' + today;
+
+                // Mostrar el modal si la caja NO fue marcada hoy
+                if (!localStorage.getItem(storageKey)) {
+                    setTimeout(() => {
+                        const bdayModal = new bootstrap.Modal(birthdayModalEl);
+                        bdayModal.show();
+                    }, 1000); // Aparece 1 seg después de cargar la página
+                }
+
+                // Guardar la preferencia silenciosamente al cerrar el modal (botón o ESC)
+                birthdayModalEl.addEventListener('hide.bs.modal', function () {
+                    const dontShow = document.getElementById('dontShowBirthday').checked;
+                    if (dontShow) {
+                        localStorage.setItem(storageKey, 'true');
+                    }
+                });
+            }
+        });
+    </script>
        
     <!-- Lógica PWA -->
     <script>

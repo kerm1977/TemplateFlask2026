@@ -7,6 +7,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from datetime import datetime
 import json
 import io
+from sqlalchemy import extract
+import urllib.parse
 
 # Importaciones locales
 from db import SessionLocal
@@ -14,6 +16,47 @@ from models import User, ExtraField, Notification, BusinessCard
 from users import create_user, get_user_by_email, bcrypt, prepare_export_data, update_password
 
 main_bp = Blueprint('main', __name__)
+
+# --- INYECCIÓN DE DATOS GLOBALES (Cumpleaños y Usuario Actual) ---
+@main_bp.context_processor
+def inject_global_data():
+    """Inyecta datos a todas las plantillas HTML automáticamente"""
+    context = {
+        'current_user': None,
+        'birthday_users': []
+    }
+    
+    db = SessionLocal()
+    try:
+        # IMPORTANTE: Cambiado a now() en lugar de utcnow() para evitar problemas
+        # de zona horaria (que el servidor crea que ya es mañana)
+        today = datetime.now()
+        
+        # 1. Buscar a todos los usuarios cuyo mes y día de nacimiento sea HOY
+        # Filtramos a nivel de Python para asegurar 100% de compatibilidad con SQLite y MySQL
+        all_users = db.query(User).all()
+        bday_users = []
+        
+        for u in all_users:
+            if u.birth_date and u.birth_date.month == today.month and u.birth_date.day == today.day:
+                # Preparamos el mensaje personalizado y lo codificamos para enlaces de WhatsApp
+                mensaje = f"¡Hola {u.first_name}! ¡Feliz Cumpleaños! Te deseamos en la Tribu de Los Libres esperamos el mejor día junto a tus amig@s y Familia."
+                u.whatsapp_msg = urllib.parse.quote(mensaje)
+                bday_users.append(u)
+                
+        context['birthday_users'] = bday_users
+        
+        # 2. Obtener al usuario logueado actualmente (Solo si hay sesión activa)
+        if 'user_id' in session:
+            context['current_user'] = db.query(User).get(session['user_id'])
+            
+    except Exception as e:
+        print(f"Error en context_processor: {e}")
+    finally:
+        db.close()
+        
+    return context
+
 
 def login_required(f):
     """Decorador simple para proteger rutas"""
@@ -292,3 +335,17 @@ def change_password_route():
     
     db.close()
     return redirect(url_for('main.perfil'))
+
+@main_bp.route('/verify_password', methods=['POST'])
+@login_required
+def verify_password():
+    current_pw = request.form.get('current_password')
+    
+    db = SessionLocal()
+    user = db.query(User).get(session['user_id'])
+    
+    # Valida usando bcrypt contra el hash de la BD
+    is_valid = bcrypt.check_password_hash(user.password, current_pw)
+    db.close()
+    
+    return jsonify({'valid': is_valid})

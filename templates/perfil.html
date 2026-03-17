@@ -12,19 +12,30 @@
                 <!-- Columna Izquierda: Avatar y Acciones Rápidas -->
                 <div class="col-md-4 text-center border-end-md">
                     <div class="position-relative d-inline-block mb-3">
-                        <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
+                        <img src="{{ url_for('static', filename='img/' + (user.avatar if user.avatar else 'default.png')) }}" 
                              class="rounded-circle border border-orange p-1 shadow" 
                              style="width: 150px; height: 150px; object-fit: cover;"
+                             onerror="this.src='https://placehold.co/150x150?text=Avatar'"
                              alt="Avatar">
                     </div>
                     <h3 class="fw-bold text-orange mb-0">{{ user.first_name }}</h3>
-                    <p class="text-muted">{{ user.role }}</p>
+                    
+                    <div class="mt-2 mb-1">
+                        {% set rol_mostrar = user.role if user.role else 'Usuario' %}
+                        {% if rol_mostrar == 'Superusuario' %}
+                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-star-fill"></i> Superusuario</span>
+                        {% elif rol_mostrar == 'Administrador' %}
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-shield-lock-fill"></i> Administrador</span>
+                        {% else %}
+                            <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-person-fill"></i> Usuario Regular</span>
+                        {% endif %}
+                    </div>
                     
                     <div class="d-grid gap-2 mt-4">
-                        <!-- NUEVO BOTÓN PARA EDITAR PERFIL -->
                         <a href="{{ url_for('main.editar_perfil') }}" class="btn bg-orange text-white rounded-pill btn-sm">
                             <i class="bi bi-pencil-square"></i> Editar Perfil
                         </a>
+                        <!-- BOTÓN DE CAMBIAR CONTRASEÑA -->
                         <button class="btn btn-outline-orange rounded-pill btn-sm" data-bs-toggle="modal" data-bs-target="#modalPassword">
                             <i class="bi bi-shield-lock"></i> Cambiar Contraseña
                         </button>
@@ -37,8 +48,16 @@
                     </div>
                     
                     <div class="mt-4 text-start small text-muted">
-                        <p class="mb-1"><strong>Registrado:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</p>
-                        <p class="mb-0"><strong>Modificado:</strong> {{ user.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <!-- NUEVO: Fecha de Nacimiento y Edad -->
+                        <p class="mb-1">
+                            <i class="bi bi-calendar2-heart text-orange"></i> <strong>Nacimiento:</strong> 
+                            {{ user.birth_date.strftime('%d/%m/%Y') if user.birth_date else 'N/A' }}
+                            {% if user.birth_date %}
+                                <span id="userAgeDisplay" class="badge bg-orange ms-1"></span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1"><i class="bi bi-person-check text-orange"></i> <strong>Registrado:</strong> {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</p>
+                        <p class="mb-0"><i class="bi bi-clock-history text-orange"></i> <strong>Modificado:</strong> {{ user.updated_at.strftime('%d/%m/%Y %H:%M') if user.updated_at else 'N/A' }}</p>
                     </div>
                 </div>
 
@@ -49,11 +68,11 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Nombre</label>
-                                <input type="text" class="form-control glass-input val-name" value="{{ user.first_name }}">
+                                <input type="text" class="form-control glass-input" value="{{ user.first_name }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Apellidos</label>
-                                <input type="text" class="form-control glass-input val-surname" value="{{ user.last_name1 }} {{ user.last_name2 }}">
+                                <input type="text" class="form-control glass-input" value="{{ user.last_name1 }} {{ user.last_name2 }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Email</label>
@@ -61,22 +80,22 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Teléfono</label>
-                                <input type="text" class="form-control glass-input val-numeric" value="{{ user.phone }}">
+                                <input type="text" class="form-control glass-input" value="{{ user.phone }}" readonly>
                             </div>
                         </div>
 
                         <h5 class="fw-bold border-bottom pb-2 mb-3 mt-4">Información Adicional</h5>
                         <div class="row g-3">
-                            {% for field in user.extra_fields %}
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">{{ field.label or field.field_type }}</label>
-                                <input type="text" class="form-control glass-input" value="{{ field.value }}">
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div class="mt-4 text-end">
-                            <button type="submit" class="btn bg-orange text-white rounded-pill px-4">Guardar Cambios</button>
+                            {% if user.extra_fields %}
+                                {% for field in user.extra_fields %}
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">{{ field.label or field.field_type }}</label>
+                                    <input type="text" class="form-control glass-input" value="{{ field.value }}" readonly>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12 small text-muted">No hay información adicional registrada.</div>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -86,38 +105,45 @@
 </div>
 
 <!-- Modal Cambiar Contraseña -->
-<div class="modal fade" id="modalPassword" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalPassword" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card border-0">
             <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold text-orange">Cambiar Contraseña</h5>
+                <h5 class="modal-title fw-bold text-orange"><i class="bi bi-shield-lock"></i> Cambiar Contraseña</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('main.change_password_route') }}" method="POST">
+            <form action="{{ url_for('main.change_password_route') }}" method="POST" id="formChangePassword">
                 <div class="modal-body">
+                    <!-- Contraseña Actual con botón de Verificar -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Contraseña Actual</label>
                         <div class="input-group">
-                            <input type="password" name="current_password" id="oldPass" class="form-control glass-input" required>
+                            <input type="password" name="current_password" id="oldPass" class="form-control glass-input" placeholder="Digita tu contraseña actual" required>
                             <button class="btn btn-outline-secondary toggle-password" type="button" data-target="oldPass">
                                 <i class="bi bi-eye"></i>
                             </button>
+                            <button class="btn bg-orange text-white" type="button" id="btnVerifyPw" onclick="verifyCurrentPassword()">
+                                Verificar
+                            </button>
                         </div>
+                        <div id="verifyPwMsg" class="mt-1"></div>
                     </div>
+                    
+                    <!-- Campos de Nueva Contraseña (bloqueados por defecto) -->
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Nueva Contraseña</label>
+                        <label class="form-label small fw-bold text-muted" id="labelNewPass">Nueva Contraseña</label>
                         <div class="input-group">
-                            <input type="password" name="new_password" id="newPass" class="form-control glass-input" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPass">
+                            <input type="password" name="new_password" id="newPass" class="form-control glass-input" placeholder="********" required disabled>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPass" disabled>
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Confirmar Nueva Contraseña</label>
+                        <label class="form-label small fw-bold text-muted" id="labelConfirmPass">Confirmar Nueva Contraseña</label>
                         <div class="input-group">
-                            <input type="password" name="confirm_password" id="newPassConfirm" class="form-control glass-input" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassConfirm">
+                            <input type="password" name="confirm_password" id="newPassConfirm" class="form-control glass-input" placeholder="********" required disabled>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassConfirm" disabled>
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
@@ -125,7 +151,8 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn bg-orange text-white rounded-pill">Actualizar Contraseña</button>
+                    <!-- Botón de guardar bloqueado inicialmente -->
+                    <button type="submit" class="btn bg-orange text-white rounded-pill shadow" id="btnSubmitPassword" disabled>Actualizar Contraseña</button>
                 </div>
             </form>
         </div>
@@ -136,27 +163,36 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/eye.js') }}"></script>
 <script>
-    // Exportar a WhatsApp filtrando campos vacíos
-    function exportToWhatsApp() {
-        const userData = {{ export_data | tojson }};
-        let message = "*Información de Perfil - Orange System*\n\n";
+    // --- Lógica para calcular la edad exacta en tiempo real ---
+    {% if user.birth_date %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const birthDate = new Date("{{ user.birth_date.strftime('%Y-%m-%d') }}");
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
         
+        // Si el mes actual es menor al de nacimiento, o si es el mismo mes pero el día aún no llega
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        document.getElementById('userAgeDisplay').innerText = `(${age} años)`;
+    });
+    {% endif %}
+
+    // --- Lógica de exportaciones ---
+    function exportToWhatsApp() {
+        const userData = {{ export_data | tojson | safe }};
+        let message = "*Información de Perfil - Orange System*\n\n";
         for (const [key, value] of Object.entries(userData)) {
-            // Filtrado de vacíos, None o null ya viene del servidor, 
-            // pero reforzamos en JS por si acaso.
             if (value && value !== "None" && value !== "null") {
                 message += `*${key}:* ${value}\n`;
             }
         }
-        
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     }
 
-    // Exportar a PNG (Lógica para captura de elemento)
     function exportToPNG() {
-        // Como no se permiten CDNs, se asume que el usuario ha descargado html2canvas.min.js localmente.
-        // Si el archivo existe en js/ se puede ejecutar:
         if (typeof html2canvas !== 'undefined') {
             const element = document.getElementById('profileCard');
             html2canvas(element).then(canvas => {
@@ -166,9 +202,75 @@
                 link.click();
             });
         } else {
-            // Fallback: Si no hay librería de captura, avisamos al usuario o abrimos diálogo de impresión
             window.print();
         }
     }
+
+    // --- LÓGICA PARA VERIFICAR CONTRASEÑA EN TIEMPO REAL ---
+    function verifyCurrentPassword() {
+        const currentPw = document.getElementById('oldPass').value;
+        const msgDiv = document.getElementById('verifyPwMsg');
+        
+        if (!currentPw) {
+            msgDiv.innerHTML = '<span class="text-warning small fw-bold"><i class="bi bi-exclamation-triangle"></i> Escribe tu contraseña primero</span>';
+            return;
+        }
+
+        // Mostrar estado de carga y bloquear botón
+        document.getElementById('btnVerifyPw').disabled = true;
+        msgDiv.innerHTML = '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> Verificando...</span>';
+
+        // Hacer petición silenciosa al servidor (Fetch API)
+        fetch("{{ url_for('main.verify_password') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                'current_password': currentPw
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('btnVerifyPw').disabled = false;
+            
+            if (data.valid) {
+                // Si la contraseña es CORRECTA, desbloquear todo
+                document.getElementById('newPass').disabled = false;
+                document.getElementById('newPassConfirm').disabled = false;
+                document.getElementById('btnSubmitPassword').disabled = false;
+                
+                // Desbloquear los botones de 'ojo' para las nuevas contraseñas
+                const eyeBtns = document.querySelectorAll('#modalPassword .toggle-password');
+                eyeBtns.forEach(btn => btn.disabled = false);
+                
+                // Restablecer estilos visuales
+                document.getElementById('labelNewPass').classList.remove('text-muted');
+                document.getElementById('labelConfirmPass').classList.remove('text-muted');
+
+                // Mensaje de éxito y ocultar botón verificar
+                msgDiv.innerHTML = '<span class="text-success small fw-bold"><i class="bi bi-check-circle"></i> Contraseña correcta. Puedes escribir la nueva.</span>';
+                document.getElementById('oldPass').readOnly = true;
+                document.getElementById('btnVerifyPw').style.display = 'none';
+            } else {
+                // Si es INCORRECTA
+                msgDiv.innerHTML = '<span class="text-danger small fw-bold"><i class="bi bi-x-circle"></i> La contraseña es incorrecta</span>';
+            }
+        })
+        .catch(err => {
+            document.getElementById('btnVerifyPw').disabled = false;
+            msgDiv.innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle"></i> Error de conexión con el servidor</span>';
+        });
+    }
+
+    // Validar en Front-end que las contraseñas coincidan antes de enviar
+    document.getElementById('formChangePassword').addEventListener('submit', function(e) {
+        const pass1 = document.getElementById('newPass').value;
+        const pass2 = document.getElementById('newPassConfirm').value;
+        if (pass1 !== pass2) {
+            e.preventDefault();
+            alert("⚠️ Las nuevas contraseñas no coinciden. Por favor, verifícalas.");
+        }
+    });
 </script>
 {% endblock %}

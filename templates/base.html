@@ -1,0 +1,135 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sistema Orange - {% block title %}{% endblock %}</title>
+ 
+    <!-- Estilos Personalizados -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- NAVBAR DESKTOP (Solo visible en > 768px) -->
+    <nav class="navbar navbar-expand-lg desktop-navbar glass-card m-3 sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-orange" href="{{ url_for('main.home') }}">
+                <i class="bi bi-lightning-charge-fill"></i> ORANGE SYS
+            </a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.home') }}">Inicio</a>
+                    </li>
+                    {% if session.get('user_id') %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.perfil') }}">Mi Perfil</a>
+                        </li>
+                        {% if session.get('role') in ['Superusuario', 'Administrador'] %}
+                            <li class="nav-item">
+                                <a class="nav-link text-danger" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item ms-lg-3">
+                            <a class="btn bg-orange text-white rounded-pill" href="{{ url_for('main.logout') }}">Salir</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.login') }}">Login</a>
+                        </li>
+                        <li class="nav-item ms-lg-3">
+                            <a class="btn bg-orange text-white rounded-pill" href="{{ url_for('main.registro') }}">Registro</a>
+                        </li>
+                    {% endif %}
+                    <!-- Botón PWA Desktop -->
+                    <li class="nav-item ms-2">
+                        <button id="pwa-install-btn" class="pwa-install-btn d-none">
+                            <i class="bi bi-download"></i> Instalar
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- BARRA MÓVIL (Solo visible en < 768px) -->
+    <div class="mobile-navbar">
+        <a href="{{ url_for('main.home') }}" class="mobile-nav-item">
+            <i class="bi bi-house-door"></i>
+            <span>Inicio</span>
+        </a>
+        {% if not session.get('user_id') %}
+            <a href="{{ url_for('main.login') }}" class="mobile-nav-item">
+                <i class="bi bi-person-circle"></i>
+                <span>Ingresar</span>
+            </a>
+        {% else %}
+            <a href="{{ url_for('main.perfil') }}" class="mobile-nav-item">
+                <i class="bi bi-person-vcard"></i>
+                <span>Perfil</span>
+            </a>
+        {% endif %}
+        <!-- Botón PWA Móvil -->
+        <a href="#" id="pwa-install-mobile" class="mobile-nav-item d-none">
+            <i class="bi bi-arrow-down-square"></i>
+            <span>App</span>
+        </a>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} glass-card border-0 mb-4 animate__animated animate__fadeIn">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- BOTÓN VOLVER ATRÁS GLOBAL (Inferior Izquierdo) -->
+    <button onclick="window.history.back()" class="btn-back-global" title="Volver atrás">
+        <i class="bi bi-arrow-left-short fs-2"></i>
+    </button>
+
+    <!-- Scripts Base (Local) -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/validaciones.js') }}"></script>
+    
+    <!-- Lógica PWA -->
+    <script>
+        let deferredPrompt;
+        const installBtn = document.getElementById('pwa-install-btn');
+        const installMobile = document.getElementById('pwa-install-mobile');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if(installBtn) installBtn.classList.remove('d-none');
+            if(installMobile) installMobile.classList.remove('d-none');
+        });
+
+        async function handleInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                if(installBtn) installBtn.classList.add('d-none');
+                if(installMobile) installMobile.classList.add('d-none');
+            }
+        }
+
+        if(installBtn) installBtn.addEventListener('click', handleInstall);
+        if(installMobile) installMobile.addEventListener('click', handleInstall);
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

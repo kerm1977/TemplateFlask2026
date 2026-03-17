@@ -1,0 +1,77 @@
+<!-- login.html -->
+{% extends 'base.html' %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        <div class="glass-card p-4 p-md-5 animate__animated animate__fadeIn">
+            <div class="text-center mb-4">
+                <div class="bg-orange d-inline-block p-3 rounded-circle mb-3 shadow">
+                    <i class="bi bi-person-lock text-white fs-1"></i>
+                </div>
+                <h2 class="fw-bold text-orange">Bienvenido</h2>
+                <p class="text-muted">Ingresa tus credenciales para continuar</p>
+            </div>
+
+            <form action="{{ url_for('main.login') }}" method="POST">
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-envelope text-orange"></i></span>
+                        <input type="email" name="email" id="email" 
+                               class="form-control glass-input border-start-0 val-email" 
+                               placeholder="correo@ejemplo.com" required>
+                    </div>
+                </div>
+
+                <!-- Contraseña con Ojo -->
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-bold">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-key text-orange"></i></span>
+                        <input type="password" name="password" id="loginPass" 
+                               class="form-control glass-input border-start-0 border-end-0" 
+                               placeholder="********" required>
+                        <button class="btn btn-outline-secondary border-start-0 toggle-password" 
+                                type="button" data-target="loginPass">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Opciones Extra -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input shadow-none" type="checkbox" name="remember" id="remember">
+                        <label class="form-check-label small text-muted" for="remember">
+                            Recordarme
+                        </label>
+                    </div>
+                    <a href="#" class="small text-orange text-decoration-none fw-bold">¿Olvidó contraseña?</a>
+                </div>
+
+                <!-- Botón de Acción -->
+                <div class="d-grid">
+                    <button type="submit" class="btn bg-orange text-white btn-lg rounded-pill shadow">
+                        Ingresar <i class="bi bi-arrow-right-short"></i>
+                    </button>
+                </div>
+
+                <!-- Enlace a Registro -->
+                <div class="text-center mt-4">
+                    <p class="small text-muted mb-0">¿No tienes una cuenta?</p>
+                    <a href="{{ url_for('main.registro') }}" class="text-orange fw-bold text-decoration-none">Registrarme ahora</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Cargamos la lógica del ojo para ver contraseña -->
+<script src="{{ url_for('static', filename='js/eye.js') }}"></script>
+{% endblock %}

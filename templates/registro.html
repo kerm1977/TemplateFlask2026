@@ -1,0 +1,211 @@
+<!-- registro.html -->
+{% extends 'base.html' %}
+
+{% block title %}Registro de Usuario{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="glass-card p-4 p-md-5 animate__animated animate__fadeInUp">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-orange">Crear Cuenta</h2>
+                <p class="text-muted">Completa tus datos para unirte al sistema</p>
+            </div>
+
+            <form action="{{ url_for('main.registro') }}" method="POST" id="registroForm" enctype="multipart/form-data">
+                
+                <!-- Sección Avatar -->
+                <div class="text-center mb-4">
+                    <div class="position-relative d-inline-block">
+                        <img id="avatarPreview" src="{{ url_for('static', filename='img/default.png') }}" 
+                             class="rounded-circle border border-orange p-1 shadow" 
+                             style="width: 120px; height: 120px; object-fit: cover;"
+                             onerror="this.src='https://placehold.co/150x150?text=Avatar'">
+                        <label for="avatarInput" class="position-absolute bottom-0 end-0 bg-orange text-white rounded-circle p-2 shadow-sm" style="cursor: pointer;">
+                            <i class="bi bi-camera-fill"></i>
+                        </label>
+                        <input type="file" id="avatarInput" name="avatar" class="d-none" accept="image/*" onchange="previewImage(this)">
+                    </div>
+                </div>
+
+                <!-- Datos Personales -->
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombre</label>
+                        <input type="text" name="first_name" class="form-control glass-input val-name" placeholder="Ej: Juan Carlos" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Primer Apellido</label>
+                        <input type="text" name="last_name1" class="form-control glass-input val-surname" placeholder="Ej: Perez" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Segundo Apellido</label>
+                        <input type="text" name="last_name2" class="form-control glass-input val-surname" placeholder="Ej: Rodriguez" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Email</label>
+                        <input type="email" name="email" class="form-control glass-input val-email" placeholder="correo@ejemplo.com" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Teléfono Principal</label>
+                        <div class="input-group">
+                            <select class="form-select glass-input w-25" name="country_code" id="countryCode">
+                                <option value="+506">CR +506</option>
+                                <option value="+1">USA +1</option>
+                                <option value="+52">MX +52</option>
+                                <option value="+34">ES +34</option>
+                            </select>
+                            <input type="text" name="phone" class="form-control glass-input val-numeric w-75" placeholder="Número" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Fecha de Nacimiento</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <select name="day" class="form-select glass-input" required>
+                                    <option value="">Día</option>
+                                    {% for d in range(1, 32) %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <select name="month" class="form-select glass-input" required>
+                                    <option value="">Mes</option>
+                                    {% set meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] %}
+                                    {% for m in meses %}<option value="{{ loop.index }}">{{ m }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <select name="year" class="form-select glass-input" required>
+                                    <option value="">Año</option>
+                                    {% for y in range(2025, 1920, -1) %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contraseñas con Función Ojo -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="password" id="pass1" class="form-control glass-input" required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="pass1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Verificar Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="confirm_password" id="pass2" class="form-control glass-input" required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="pass2">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Sección Campos Dinámicos -->
+                <div class="mb-3">
+                    <h5 class="fw-bold text-orange">Información Adicional</h5>
+                    <div id="dynamicFieldsContainer">
+                        <!-- Aquí se inyectan los campos extras -->
+                    </div>
+                    <div class="mt-3">
+                        <div class="input-group">
+                            <select id="extraFieldSelector" class="form-select glass-input">
+                                <option value="">Selecciona tipo de campo...</option>
+                                <option value="Telefono">Teléfono</option>
+                                <option value="Whatsapp">Whatsapp</option>
+                                <option value="Facebook">Facebook (URL)</option>
+                                <option value="Instagram">Instagram (URL)</option>
+                                <option value="Direccion">Dirección (Google Maps)</option>
+                                <option value="Fecha">Fecha Especial</option>
+                                <option value="Institucion">Proveedor/Tienda/Fábrica</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                            <button type="button" class="btn bg-orange text-white" onclick="addExtraField()">
+                                <i class="bi bi-plus-circle"></i> Agregar Campo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5 d-grid">
+                    <button type="submit" class="btn bg-orange text-white btn-lg rounded-pill shadow">Finalizar Registro</button>
+                    <a href="{{ url_for('main.login') }}" class="text-center mt-3 text-decoration-none text-muted">¿Ya tienes cuenta? Inicia Sesión</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Funciones locales para esta vista (la lógica pesada irá en validaciones.js) -->
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatarPreview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function addExtraField() {
+        const type = document.getElementById('extraFieldSelector').value;
+        const container = document.getElementById('dynamicFieldsContainer');
+        if (!type) return;
+
+        const fieldId = 'field_' + Date.now();
+        let html = `<div class="glass-card p-3 mb-3 animate__animated animate__fadeInLeft" id="${fieldId}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-orange">${type}</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="document.getElementById('${fieldId}').remove()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" name="extra_field_type[]" value="${type}">`;
+
+        // Lógica de inputs según selección
+        if (['Telefono', 'Whatsapp'].includes(type)) {
+            html += `<input type="text" name="extra_field_value[]" class="form-control glass-input val-numeric" placeholder="Número de ${type}" required>`;
+        } 
+        else if (['Facebook', 'Instagram', 'Direccion'].includes(type)) {
+            html += `<input type="text" name="extra_field_desc[]" class="form-control glass-input mb-2" placeholder="Descripción (Ej: Mi perfil)">
+                     <input type="url" name="extra_field_value[]" class="form-control glass-input" placeholder="URL o Link" required>`;
+        }
+        else if (type === 'Fecha') {
+            html += `<input type="text" name="extra_field_desc[]" class="form-control glass-input mb-2" placeholder="Descripción (Ej: Aniversario)">
+                     <div class="row g-2">
+                        <div class="col-4"><input type="number" name="ef_day[]" class="form-control glass-input" placeholder="Día" min="1" max="31"></div>
+                        <div class="col-4"><input type="number" name="ef_month[]" class="form-control glass-input" placeholder="Mes" min="1" max="12"></div>
+                        <div class="col-4"><input type="number" name="ef_year[]" class="form-control glass-input" placeholder="Año" min="1900" max="2100"></div>
+                     </div>`;
+        }
+        else if (['Institucion', 'Provedoor', 'Tienda', 'Fabrica'].includes(type) || type === 'Institucion') {
+            html += `<input type="text" name="inst_name[]" class="form-control glass-input mb-2" placeholder="Nombre de la Institución/Tienda" required>
+                     <input type="text" name="inst_phone[]" class="form-control glass-input mb-2 val-numeric" placeholder="Teléfono Institución">
+                     <input type="text" name="cont_name[]" class="form-control glass-input mb-2" placeholder="Nombre del Contacto">
+                     <input type="text" name="cont_phone[]" class="form-control glass-input val-numeric" placeholder="Teléfono Contacto">`;
+        }
+        else {
+            html += `<input type="text" name="extra_field_value[]" class="form-control glass-input" placeholder="Descripción" required>`;
+        }
+
+        html += `</div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        document.getElementById('extraFieldSelector').value = "";
+        
+        // Reinicializar validadores para los nuevos elementos
+        if (window.initValidators) window.initValidators();
+    }
+</script>
+<script src="{{ url_for('static', filename='js/eye.js') }}"></script>
+{% endblock %}

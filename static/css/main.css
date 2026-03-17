@@ -1,0 +1,131 @@
+/* main.css */
+
+/* Importación de animaciones para mantener el HTML limpio */
+@import url('bootstrap.css');
+@import url('bootstrap-icons.css');
+/* Variables de Tema: Orange Glassmorphism */
+:root {
+    --orange-primary: #ff8c00;
+    --orange-secondary: #ff4500;
+    --glass-bg: rgba(255, 255, 255, 0.25); /* Opacidad restaurada para un fondo limpio */
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-blur: blur(10px);
+    --text-color: #333;
+    /* Degradado grisáceo-naranja leve */
+    --bg-gradient: linear-gradient(135deg, #e6e4e0 0%, #ffdfba 100%);
+}
+
+body {
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+}
+
+/* Efecto Glassmorphism General */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Botón Flotante Global (Inferior Izquierdo) */
+.btn-back-global {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--orange-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    border: none;
+}
+
+.btn-back-global:hover {
+    transform: scale(1.1);
+    background-color: var(--orange-secondary);
+}
+
+/* PWA Install Button Style */
+.pwa-install-btn {
+    background: var(--orange-primary);
+    border-radius: 20px;
+    color: white;
+    padding: 5px 15px;
+    border: none;
+}
+
+/* --- LÓGICA VISTA DUAL --- */
+
+/* Vista Desktop (Predeterminada) */
+@media (min-width: 769px) {
+    .mobile-navbar {
+        display: none !important;
+    }
+    .desktop-navbar {
+        display: block;
+    }
+}
+
+/* Vista Móvil (< 768px) */
+@media (max-width: 768px) {
+    .desktop-navbar {
+        display: none !important;
+    }
+    
+    /* Barra tipo móvil inferior */
+    .mobile-navbar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(15px);
+        border-top: 1px solid var(--glass-border);
+        justify-content: space-around;
+        align-items: center;
+        z-index: 2000;
+        /* Padding inferior extra para evitar superposición en Samsung/iOS */
+        padding-bottom: env(safe-area-inset-bottom, 10px); 
+    }
+
+    .mobile-nav-item {
+        text-align: center;
+        color: var(--orange-primary);
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+
+    .mobile-nav-item i {
+        display: block;
+        font-size: 1.5rem;
+    }
+
+    /* Ajuste para que el contenido no quede oculto tras la barra móvil */
+    body {
+        padding-bottom: 90px;
+    }
+    
+    /* El botón de atrás se sube un poco para no chocar con la barra móvil */
+    .btn-back-global {
+        bottom: 85px;
+    }
+}
+
+/* Utilidades de Formato */
+.text-orange { color: var(--orange-primary); }
+.bg-orange { background-color: var(--orange-primary); }
+.border-orange { border-color: var(--orange-primary); }

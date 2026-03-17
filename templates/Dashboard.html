@@ -1,0 +1,224 @@
+<!-- dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Administrativo{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Panel de Estadísticas Rápidas -->
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="glass-card p-3 text-center border-orange">
+                    <h5 class="text-muted small fw-bold">USUARIOS TOTALES</h5>
+                    <h2 class="display-6 fw-bold text-orange">{{ stats.total }}</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-3 text-center border-orange">
+                    <h5 class="text-muted small fw-bold">REGISTROS ESTE MES</h5>
+                    <h2 class="display-6 fw-bold text-orange">{{ stats.recent }}</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-3 text-center d-flex align-items-center justify-content-center">
+                    <a href="{{ url_for('main.export_all_users_txt') }}" class="btn bg-orange text-white rounded-pill w-100">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Exportar Todo (TXT)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas de Gestión -->
+    <div class="col-12">
+        <div class="glass-card p-4">
+            <ul class="nav nav-pills mb-4 justify-content-center" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill me-2" id="users-tab" data-bs-toggle="pill" data-bs-target="#usersContent" type="button">Usuarios</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill me-2" id="cards-tab" data-bs-toggle="pill" data-bs-target="#cardsContent" type="button">Tarjetas</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill" id="notify-tab" data-bs-toggle="pill" data-bs-target="#notifyContent" type="button">Notificador</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="adminTabsContent">
+                
+                <!-- GESTIÓN DE USUARIOS -->
+                <div class="tab-pane fade show active" id="usersContent" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr class="text-orange">
+                                    <th>Usuario</th>
+                                    <th>Registro</th>
+                                    <th>Rol</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ url_for('static', filename='img/' + u.avatar) }}" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
+                                            <div>
+                                                <div class="fw-bold small">{{ u.first_name }} {{ u.last_name1 }}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">{{ u.email }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="small">{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ u.role }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-secondary border-0" title="Editar"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-sm btn-outline-warning border-0" title="Bloquear"><i class="bi bi-slash-circle"></i></button>
+                                            <button class="btn btn-sm btn-outline-danger border-0" onclick="confirmDeleteStep1({{ u.id }})" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- GESTIÓN DE TARJETAS EMPRESARIALES -->
+                <div class="tab-pane fade" id="cardsContent" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">Tarjetas de Presentación</h5>
+                        <button class="btn bg-orange btn-sm text-white rounded-pill" data-bs-toggle="modal" data-bs-target="#modalNewCard">
+                            <i class="bi bi-plus-lg"></i> Nueva Tarjeta
+                        </button>
+                    </div>
+                    <div class="row g-3">
+                        <!-- Ejemplo de Tarjeta -->
+                        <div class="col-md-6">
+                            <div class="glass-card p-3 border-orange position-relative overflow-hidden">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="fw-bold text-orange mb-1">Nombre Empresa / Usuario</h6>
+                                        <p class="small mb-1"><i class="bi bi-telephone"></i> +506 8888-8888</p>
+                                        <p class="small mb-1"><i class="bi bi-geo-alt"></i> Dirección física o link</p>
+                                    </div>
+                                    <i class="bi bi-briefcase fs-1 opacity-25"></i>
+                                </div>
+                                <div class="mt-3 d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-image"></i> PNG</button>
+                                    <button class="btn btn-sm btn-outline-success rounded-pill"><i class="bi bi-whatsapp"></i> WA</button>
+                                    <button class="btn btn-sm btn-danger rounded-pill" onclick="confirmDeleteStep1('card_1')">Eliminar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICADOR FLASH -->
+                <div class="tab-pane fade" id="notifyContent" role="tabpanel">
+                    <form action="#" method="POST" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Imagen de Notificación</label>
+                            <input type="file" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Fecha Inicio</label>
+                            <input type="date" class="form-control glass-input" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Fecha Finalización</label>
+                            <input type="date" class="form-control glass-input" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Tipo de Notificación</label>
+                            <select class="form-select glass-input">
+                                <option>Feriado</option>
+                                <option>Entregas</option>
+                                <option>Evento</option>
+                                <option>Invitación</option>
+                                <option>Cumpleaños</option>
+                                <option>Aniversario</option>
+                                <option>Fallecimiento</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Mensaje / Notificación</label>
+                            <input type="text" class="form-control glass-input" placeholder="Escribe el mensaje flash aquí..." required>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn bg-orange text-white rounded-pill px-4">Publicar Notificación</button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN 3 PASOS -->
+<div class="modal fade" id="modalConfirmDelete" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-body text-center p-4">
+                <div id="step1">
+                    <i class="bi bi-exclamation-triangle text-warning fs-1"></i>
+                    <h5 class="fw-bold mt-3">¿Confirmar eliminación?</h5>
+                    <p class="small text-muted">Esta acción es irreversible (Paso 1/3)</p>
+                    <button class="btn btn-warning w-100 rounded-pill mt-2" onclick="confirmDeleteStep2()">Sí, continuar</button>
+                </div>
+                <div id="step2" class="d-none">
+                    <i class="bi bi-shield-exclamation text-danger fs-1"></i>
+                    <h5 class="fw-bold mt-3">¿Está TOTALMENTE seguro?</h5>
+                    <p class="small text-muted">Los datos se borrarán para siempre (Paso 2/3)</p>
+                    <button class="btn btn-danger w-100 rounded-pill mt-2" onclick="confirmDeleteStep3()">Entiendo, proceder</button>
+                </div>
+                <div id="step3" class="d-none">
+                    <i class="bi bi-trash-fill text-dark fs-1"></i>
+                    <h5 class="fw-bold mt-3">CONFIRMACIÓN FINAL</h5>
+                    <p class="small text-muted">Presione para borrar definitivamente (Paso 3/3)</p>
+                    <button class="btn btn-dark w-100 rounded-pill mt-2" id="btnFinalDelete">BORRAR AHORA</button>
+                </div>
+                <button class="btn btn-link text-muted btn-sm mt-3" data-bs-dismiss="modal">Cancelar proceso</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTargetId = null;
+
+    function confirmDeleteStep1(id) {
+        currentTargetId = id;
+        document.getElementById('step1').classList.remove('d-none');
+        document.getElementById('step2').classList.add('d-none');
+        document.getElementById('step3').classList.add('d-none');
+        const modal = new bootstrap.Modal(document.getElementById('modalConfirmDelete'));
+        modal.show();
+    }
+
+    function confirmDeleteStep2() {
+        document.getElementById('step1').classList.add('d-none');
+        document.getElementById('step2').classList.remove('d-none');
+    }
+
+    function confirmDeleteStep3() {
+        document.getElementById('step2').classList.add('d-none');
+        document.getElementById('step3').classList.remove('d-none');
+    }
+
+    document.getElementById('btnFinalDelete').addEventListener('click', function() {
+        // Aquí iría la llamada fetch al servidor para eliminar
+        console.log("Eliminando ID:", currentTargetId);
+        window.location.reload();
+    });
+</script>
+{% endblock %}

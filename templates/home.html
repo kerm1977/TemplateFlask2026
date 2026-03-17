@@ -1,0 +1,43 @@
+<!-- home.html -->
+{% extends 'base.html' %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 text-center">
+        <!-- Notificadores Especiales (Flash de Base de Datos) -->
+        {% if notifications %}
+            {% for note in notifications %}
+                <div class="glass-card p-4 mb-4 border-orange animate__animated animate__backInDown" style="border-left: 5px solid var(--orange-primary);">
+                    <div class="row align-items-center">
+                        {% if note.image %}
+                            <div class="col-md-3 mb-3 mb-md-0">
+                                <img src="{{ url_for('static', filename='uploads/' + note.image) }}" 
+                                     alt="{{ note.notification_type }}" 
+                                     class="img-fluid rounded-3 shadow-sm"
+                                     onerror="this.src='https://placehold.co/400x300?text=Notificación'">
+                            </div>
+                        {% endif %}
+                        <div class="col-md text-start">
+                            <span class="badge bg-orange mb-2">{{ note.notification_type }}</span>
+                            <h4 class="fw-bold">{{ note.message }}</h4>
+                            <p class="text-muted small mb-0">
+                                <i class="bi bi-calendar-event"></i> Válido hasta: {{ note.end_date.strftime('%d/%m/%Y') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Mensaje Principal solicitado -->
+        <div class="glass-card p-5 mt-4">
+            <h1 class="display-4 fw-bold text-orange">¡Bienvenido!</h1>
+            <p class="lead">Este es el home</p>
+            <hr class="my-4" style="background-color: var(--orange-primary); height: 2px; opacity: 0.5;">
+            <p>Utiliza el menú para navegar por el sistema y gestionar tu perfil.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

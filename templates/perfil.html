@@ -1,0 +1,174 @@
+<!-- perfil.html -->
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Tarjeta de Perfil Principal -->
+        <div id="profileCard" class="glass-card p-4 p-md-5 animate__animated animate__fadeIn">
+            <div class="row">
+                <!-- Columna Izquierda: Avatar y Acciones Rápidas -->
+                <div class="col-md-4 text-center border-end-md">
+                    <div class="position-relative d-inline-block mb-3">
+                        <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
+                             class="rounded-circle border border-orange p-1 shadow" 
+                             style="width: 150px; height: 150px; object-fit: cover;"
+                             alt="Avatar">
+                    </div>
+                    <h3 class="fw-bold text-orange mb-0">{{ user.first_name }}</h3>
+                    <p class="text-muted">{{ user.role }}</p>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <!-- NUEVO BOTÓN PARA EDITAR PERFIL -->
+                        <a href="{{ url_for('main.editar_perfil') }}" class="btn bg-orange text-white rounded-pill btn-sm">
+                            <i class="bi bi-pencil-square"></i> Editar Perfil
+                        </a>
+                        <button class="btn btn-outline-orange rounded-pill btn-sm" data-bs-toggle="modal" data-bs-target="#modalPassword">
+                            <i class="bi bi-shield-lock"></i> Cambiar Contraseña
+                        </button>
+                        <button class="btn btn-success rounded-pill btn-sm" onclick="exportToWhatsApp()">
+                            <i class="bi bi-whatsapp"></i> Compartir WhatsApp
+                        </button>
+                        <button class="btn btn-primary rounded-pill btn-sm" onclick="exportToPNG()">
+                            <i class="bi bi-image"></i> Exportar a PNG
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 text-start small text-muted">
+                        <p class="mb-1"><strong>Registrado:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</p>
+                        <p class="mb-0"><strong>Modificado:</strong> {{ user.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Información Detallada -->
+                <div class="col-md-8 ps-md-4 mt-4 mt-md-0">
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Información Personal</h5>
+                    <form action="#" method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Nombre</label>
+                                <input type="text" class="form-control glass-input val-name" value="{{ user.first_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Apellidos</label>
+                                <input type="text" class="form-control glass-input val-surname" value="{{ user.last_name1 }} {{ user.last_name2 }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Email</label>
+                                <input type="email" class="form-control glass-input" value="{{ user.email }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Teléfono</label>
+                                <input type="text" class="form-control glass-input val-numeric" value="{{ user.phone }}">
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 mt-4">Información Adicional</h5>
+                        <div class="row g-3">
+                            {% for field in user.extra_fields %}
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">{{ field.label or field.field_type }}</label>
+                                <input type="text" class="form-control glass-input" value="{{ field.value }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-4 text-end">
+                            <button type="submit" class="btn bg-orange text-white rounded-pill px-4">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal fade" id="modalPassword" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-orange">Cambiar Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('main.change_password_route') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Contraseña Actual</label>
+                        <div class="input-group">
+                            <input type="password" name="current_password" id="oldPass" class="form-control glass-input" required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="oldPass">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="new_password" id="newPass" class="form-control glass-input" required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPass">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Confirmar Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="confirm_password" id="newPassConfirm" class="form-control glass-input" required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassConfirm">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn bg-orange text-white rounded-pill">Actualizar Contraseña</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/eye.js') }}"></script>
+<script>
+    // Exportar a WhatsApp filtrando campos vacíos
+    function exportToWhatsApp() {
+        const userData = {{ export_data | tojson }};
+        let message = "*Información de Perfil - Orange System*\n\n";
+        
+        for (const [key, value] of Object.entries(userData)) {
+            // Filtrado de vacíos, None o null ya viene del servidor, 
+            // pero reforzamos en JS por si acaso.
+            if (value && value !== "None" && value !== "null") {
+                message += `*${key}:* ${value}\n`;
+            }
+        }
+        
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    }
+
+    // Exportar a PNG (Lógica para captura de elemento)
+    function exportToPNG() {
+        // Como no se permiten CDNs, se asume que el usuario ha descargado html2canvas.min.js localmente.
+        // Si el archivo existe en js/ se puede ejecutar:
+        if (typeof html2canvas !== 'undefined') {
+            const element = document.getElementById('profileCard');
+            html2canvas(element).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'mi_perfil_orange.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        } else {
+            // Fallback: Si no hay librería de captura, avisamos al usuario o abrimos diálogo de impresión
+            window.print();
+        }
+    }
+</script>
+{% endblock %}

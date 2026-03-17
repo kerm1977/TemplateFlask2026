@@ -1,0 +1,103 @@
+Hola Necesito Crear una página web con la siguiente tecnología
+Absolutamente prohibido los CDN.s
+Bootstrap e iconos de bootsrap y flexbox para la perfecta integración a todos los dispositivos
+Tema Orange efecto Glassmorphism 
+Flask, Bcrypt
+Posibilidad de instalar para PWA
+MySQL y sqlite para uso Local
+Configurar la base de datos mysql para tailscale para almacenar en un equipo local para el mundo.
+además la prevista para agregar trabajar en pythonanywhere sea que lo suba o desee dejarlo con tailwind
+En cuanto al diseño nesecito que sea vista DUAL
+qu en vistas desktop  se vea perfectamente formateado  para PC pero en vista movil que es menor a 768px se vea un diseño movil con barra tipo movil e iconos de login e inicio en su menú. Además tener cuidado que los iconos no debe subponerse a los iconos nativos de los dispositivos moviles principalmente en los Samsung  
+
+CADA ARCHIVO, VISTA, ESTILO..LO QUE SEA SERÁ CADA VEZ QUE DIGA OK NO ME VAS A DAR TODO JUNTO PORQUE SE HACE UN DESMADRE
+
+El Diseño
+
+Las vistas .html
+Dentro de templates Y ABSOLUTAMENTE TODAS LAS VISTAS VAN A CONTENER LOS NOMBRES COMENTADOS EN LA PARTE SUPERIOR DEL HTML
+	base.html
+	Las herencias
+	home.html
+	registro.html
+	login.html
+	perfil.html
+	Dashboard.html
+
+static
+	main.css (Este archivo va a contener los estilos de la sigiente forma @import url('Animate.css'); para limpiar index y que únicamente salga  en index main.css y no cada estilo)
+
+
+	css/bootstrap
+	js/ eye.js, validaciones.js
+	js/ bootstrap.js
+
+
+
+Los archivos .py
+En la Raíz
+	app.py maneja blueprints y encargada de crear la base de datos si no existe y va a inyectar 2 superusuarios que no van a ser vistos desde ningun otro lugar. Son supersuarios que se van a inyectar automáticamente a las bases de datos apenas se ejecuta la app.py
+
+	db.py menejará absolutamente toda la configuración de pythonanywhere, tailscale y sqlite que sea totalmente inteligente y sepa si estamos en local funciona automáticamente sqlite y si está en red sabe que es mysql.
+	users.py va a administrar toda  la información de los usuarios
+	models.py va a contener todos los modelos del proyecto
+	routes.py va a contener las funciones de las rutas
+
+ahora voy a explicar detalladamente:
+
+base.html Este va a contener todo el código navbar, footer, botón volver atrás global que sea del mismo color del tema, redondo y del lado inferior izquierdo y el botón para instalar (PWA)
+
+Todas las validaciones excepto ver contraseña(eye.js) se van a encontrar en validaciones.js
+
+Home.htm solo va a tener un mensaje que diga este es el home
+
+registro.html 
+	Avatar(Agrega un imagen de avatar pero sino desea se puede utilizar una llamada default.png o default.jpg)
+	Esta vista va a contener un formulario para registro Este va a tener el Nombre, Primer Apellido, Segundo Apellido( Estos campos JAMAS puede aceptar número, caracteres especiales y en el caso del Nombre puede contener un solo espacio si el nombre es Compuesto como Juan Carlos, Y por ultimo cada campo debe si o si iniciar en Mayuscula)
+	Campo de Email(Automáticamente se pasa a minúsculas)
+	El teléfono debe permitir seleccionar el código de área que va aparecer automáticamente y según el país solo se puede digitar la cantidad de números que tiene cada teléfono de cada país y automáticamente restringe la colocación de simbolos especiales letras y espacios
+	Fecha de Nacimientos Separado por Día, mes y año()
+	
+	Contraseña (Que estos campos tengan la función OJO para ver la contraseña)
+	verificar Contraseña (Que estos campos tengan la función OJO para ver la contraseña) >>>> Esta función está dentro de eye.js
+
+	Un botón que me permita Agregar Un campo
+	Select (Descripción, Fecha, Teléfono, Whatsapp, Facebook(URL), Instagram(URL), Dirección(Google maps), Provedoor, Tienda, Fabrica, Institución, Otro) 
+	
+		Si select es igual Teléfono (Restringe la digitación de letras, caracteres especiales y espacios)
+		Si select es igual whatsapp (Restringe la digitación de letras, caracteres especiales y espacios)
+
+		Si select es igual Facebook(URL) aparece un input que dice descripción y también va aparecer los campos para agregar el campo para URL
+		Si select es igual Instagram(URL) aparece un input que dice descripción y también va aparecer los campos para agregar el campo para URL
+		Si select es igual Dirección(Google maps)  aparece un input que dice descripción y también va aparecer los campos para agregar el campo para URL
+
+		Si select es igual Fecha  aparece un input que dice descripción y también va aparecer los campos de fecha en este formato Separado por Día, mes y año
+
+		Si select es igual Provedoor o Tienda o Fabrica o Institución va aparecer un input que diga Nombre de La Institución, Teléfono Institución(Solo permite números), Nombre del Contacto,  Teléfono Contacto(Solo permite números)
+
+		Si select es igual Otros Aparece un campo  llamado Descripción con formato Title
+
+	Si el registro sale bien, se redirige a login.html, además tiene que existir un enlace en caso de ya contar con un login
+
+
+Login.html
+	Permite ingresar por el email 
+	y la contraseña(Debe contar con el ojo para ver la contraseña)
+	la opción de recordar contraseña
+	Olvidó contraseña 
+	Registrarme
+
+
+Perfil.html
+	Cada usuario que se registre puede ver absolutamente toda la información digitada desde registro.html. aquie mismo el usario puede editar absolutamente toda la información ingresada la fecha de registro y la fecha de Modificación. También aqui se puede cambiar la contraseña por medio de un modal. Cuando el usuario presiones cambiar la contraseña este va a solicitar colocar la contraseña actua si es correcta se activan los campos Nueva Contraseña y Verificacion de contraseña y utilizará la función de ver contraseña (ojo) que está dentro de (eye.js) Permite exportar a png la tarjeta del usuario, y exportar a Whatsapp absolutamente toda la información de los usuarios No exportar campos vacíos, None, null
+
+
+Dashboard.html
+	Esta vista solo puede ser vista por superusuarios. Aqui se va a mostrar, la cantidad de usuarios registrados y la fecha de registro, Un botón que permite ver usuarios registrados que permite editar, borrar, bloquear y asignar roles(Superusuario, Administrador, Colaborador, Usuario) Los superusuarios agregados en este formulario no tiene más peso que los superusuarios inyectados al inicio. Permite exportar a TXT todos los usuarios registrados con absolutamente toda la información completa. No exportar campos vacíos, None, null e igual exportar a whatsapp.
+
+	Permitir crear la tarjeta de presentación sea de usuario o empresa con un diseño empresarial, Logo, nombre, teléfono, email, Whatsapp, Dirección, Horario de los días de atención, Nombre del contacto. Y permitir exporta a PNG y whatsapp editar la tarjeta y eliminar con una confirmación de 3 pasos que pregunte tres veces.
+
+	Crar un notificador que va mostrar un mensaje flash en Home este va a contener el campo
+	colocar Imagen(Campo Imagen)
+	Fecha de Notificación, Finalización de Notificación
+	Select llamado Tipo de Notificación (Feriado, Entregas, Evento, Invitación, Cumpleaños, Aniversario, Fallecimiento, Otro)

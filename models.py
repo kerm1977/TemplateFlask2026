@@ -56,6 +56,9 @@ class BusinessCard(Base):
     schedule = Column(Text)
     contact_name = Column(String(150))
     
+    # NUEVO: Guarda el color de fondo elegido
+    theme = Column(String(50), default='dark') 
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Notification(Base):
@@ -69,8 +72,5 @@ class Notification(Base):
     
     notification_type = Column(String(50), nullable=False)
     message = Column(Text, nullable=False)
-    
-    # NUEVO: Visibilidad del mensaje
     visibility = Column(String(50), default='Todos')
-    
     is_active = Column(Integer, default=1)

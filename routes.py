@@ -287,13 +287,17 @@ def dashboard():
     
     notifs = db.query(Notification).order_by(Notification.id.desc()).offset((page-1)*per_page).limit(per_page).all()
     
+    # CORRECCIÓN: Extraer tarjetas para pasarlas al Dashboard
+    cards = db.query(BusinessCard).order_by(BusinessCard.id.desc()).all()
+    
     now = datetime.now()
     
-    html = render_template('dashboard.html', users=users, stats=stats, notifs=notifs, page=page, total_pages=total_pages, now=now)
+    # CORRECCIÓN: Añadir cards=cards en el render_template
+    html = render_template('dashboard.html', users=users, stats=stats, notifs=notifs, cards=cards, page=page, total_pages=total_pages, now=now)
     db.close()
     return html
 
-# --- RUTAS DE ADMINISTRACIÓN (DASHBOARD) ---
+# --- RUTAS DE ADMINISTRACIÓN DE USUARIOS ---
 
 @main_bp.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @admin_required
@@ -343,7 +347,7 @@ def admin_edit_user(user_id):
         flash(f'Error actualizando usuario: {str(e)}', 'danger')
     finally:
         db.close()
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('main.dashboard') + '#usersContent')
 
 # --- NOTIFICACIONES ---
 @main_bp.route('/create_notification', methods=['POST'])
@@ -380,7 +384,6 @@ def create_notification():
         db.add(new_notif)
         db.commit()
         
-        # Feedback inteligente al usuario según si la notificación es para hoy o el futuro
         if parsed_start.date() > datetime.now().date():
             flash('Anuncio programado exitosamente. Se publicará en la fecha indicada.', 'success')
         else:
@@ -444,6 +447,107 @@ def delete_notification(notif_id):
             db.commit()
             return jsonify({'success': True})
         return jsonify({'success': False, 'message': 'Notificación no encontrada'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        db.close()
+
+# --- RUTAS DE TARJETAS (BUSINESS CARDS) ---
+
+@main_bp.route('/create_card', methods=['POST'])
+@admin_required
+def create_card():
+    db = SessionLocal()
+    try:
+        logo_file = request.files.get('logo')
+        logo_filename = None
+        
+        if logo_file and logo_file.filename != '':
+            os.makedirs('static/uploads', exist_ok=True)
+            filename = secure_filename(logo_file.filename)
+            unique_filename = f"card_{int(datetime.now().timestamp())}_{filename}"
+            filepath = os.path.join('static/uploads', unique_filename)
+            logo_file.save(filepath)
+            logo_filename = unique_filename
+            
+        owner_id_val = request.form.get('owner_id')
+        owner_id = int(owner_id_val) if owner_id_val else None
+
+        new_card = BusinessCard(
+            owner_id=owner_id,
+            logo=logo_filename,
+            name=request.form.get('name'),
+            phone=request.form.get('phone'),
+            email=request.form.get('email'),
+            whatsapp=request.form.get('whatsapp'),
+            address=request.form.get('address'),
+            schedule=request.form.get('schedule'),
+            contact_name=request.form.get('contact_name'),
+            theme=request.form.get('theme', 'dark')  # CORRECCIÓN: Guardar el tema de color elegido
+        )
+        
+        db.add(new_card)
+        db.commit()
+        flash('Tarjeta de presentación creada con éxito.', 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al crear tarjeta: {str(e)}', 'danger')
+    finally:
+        db.close()
+        
+    return redirect(url_for('main.dashboard') + '#cardsContent')
+
+@main_bp.route('/edit_card/<int:card_id>', methods=['POST'])
+@admin_required
+def edit_card(card_id):
+    db = SessionLocal()
+    try:
+        card = db.query(BusinessCard).get(card_id)
+        if card:
+            card.name = request.form.get('name')
+            card.phone = request.form.get('phone')
+            card.email = request.form.get('email')
+            card.whatsapp = request.form.get('whatsapp')
+            card.address = request.form.get('address')
+            card.schedule = request.form.get('schedule')
+            card.contact_name = request.form.get('contact_name')
+            card.theme = request.form.get('theme', 'dark')  # CORRECCIÓN: Actualizar el tema
+            
+            owner_id_val = request.form.get('owner_id')
+            card.owner_id = int(owner_id_val) if owner_id_val else None
+            
+            logo_file = request.files.get('logo')
+            if logo_file and logo_file.filename != '':
+                os.makedirs('static/uploads', exist_ok=True)
+                filename = secure_filename(logo_file.filename)
+                unique_filename = f"card_{int(datetime.now().timestamp())}_{filename}"
+                filepath = os.path.join('static/uploads', unique_filename)
+                logo_file.save(filepath)
+                card.logo = unique_filename
+                
+            db.commit()
+            flash('Tarjeta actualizada correctamente.', 'success')
+        else:
+            flash('Tarjeta no encontrada.', 'danger')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al actualizar tarjeta: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('main.dashboard') + '#cardsContent')
+
+@main_bp.route('/delete_card/<int:card_id>', methods=['DELETE'])
+@admin_required
+def delete_card(card_id):
+    db = SessionLocal()
+    try:
+        card = db.query(BusinessCard).get(card_id)
+        if card:
+            db.delete(card)
+            db.commit()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'message': 'Tarjeta no encontrada'})
     except Exception as e:
         db.rollback()
         return jsonify({'success': False, 'message': str(e)})

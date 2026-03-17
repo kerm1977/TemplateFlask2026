@@ -4,6 +4,46 @@
 {% block title %}Dashboard Administrativo{% endblock %}
 
 {% block content %}
+
+<!-- Diccionario de estilos de colores de fondo para las tarjetas -->
+{% set theme_styles = {
+    'dark': {
+        'bg': 'linear-gradient(135deg, #1c1c1e 0%, #3a1e00 100%)', 
+        'text': '#ffffff', 
+        'accent': '#ff8c00', 
+        'icon_bg': 'rgba(255,255,255,0.08)',
+        'footer_op': 'rgba(255,255,255,0.2)'
+    },
+    'light-blue': {
+        'bg': 'linear-gradient(135deg, #f0fdfa 0%, #b2ebf2 100%)', 
+        'text': '#112233', 
+        'accent': '#00838f', 
+        'icon_bg': 'rgba(0,0,0,0.05)',
+        'footer_op': 'rgba(0,0,0,0.3)'
+    },
+    'light-green': {
+        'bg': 'linear-gradient(135deg, #f1f8e9 0%, #c8e6c9 100%)', 
+        'text': '#113311', 
+        'accent': '#2e7d32', 
+        'icon_bg': 'rgba(0,0,0,0.05)',
+        'footer_op': 'rgba(0,0,0,0.3)'
+    },
+    'light-purple': {
+        'bg': 'linear-gradient(135deg, #faf5ff 0%, #e1bee7 100%)', 
+        'text': '#331133', 
+        'accent': '#6a1b9a', 
+        'icon_bg': 'rgba(0,0,0,0.05)',
+        'footer_op': 'rgba(0,0,0,0.3)'
+    },
+    'light-peach': {
+        'bg': 'linear-gradient(135deg, #fffaf0 0%, #ffe0b2 100%)', 
+        'text': '#331a00', 
+        'accent': '#e65100', 
+        'icon_bg': 'rgba(0,0,0,0.05)',
+        'footer_op': 'rgba(0,0,0,0.3)'
+    }
+} %}
+
 <div class="row g-4">
     <!-- Panel de Estadísticas Rápidas -->
     <div class="col-12">
@@ -92,11 +132,154 @@
                 <div class="tab-pane fade" id="cardsContent" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Tarjetas de Presentación</h5>
-                        <button class="btn bg-orange btn-sm text-white rounded-pill" data-bs-toggle="modal" data-bs-target="#modalNewCard">
+                        <button class="btn bg-orange btn-sm text-white rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNewCard">
                             <i class="bi bi-plus-lg"></i> Nueva Tarjeta
                         </button>
                     </div>
-                    <div class="alert alert-info">Módulo de tarjetas en desarrollo...</div>
+                    
+                    <div class="row g-3">
+                        {% if cards %}
+                            {% for c in cards %}
+                            
+                            <!-- Obtenemos el estilo visual de la tarjeta seleccionada (o el oscuro por defecto) -->
+                            {% set t = theme_styles[c.theme] if c.theme in theme_styles else theme_styles['dark'] %}
+                            
+                            <!-- LIENZO OCULTO PARA EXPORTACIÓN PNG EMPRESARIAL -->
+                            <div style="position: absolute; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;">
+                                <div id="export-card-{{ c.id }}" style="width: 800px; height: 450px; background: {{ t.bg }}; border-radius: 20px; padding: 45px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; position: relative; overflow: hidden;">
+                                    
+                                    <!-- Efectos de luz fondo -->
+                                    <div style="position: absolute; top: -80px; right: -50px; width: 300px; height: 300px; background: rgba(255, 140, 0, 0.15); border-radius: 50%; filter: blur(50px);"></div>
+                                    <div style="position: absolute; bottom: -50px; left: -80px; width: 350px; height: 350px; background: rgba(255, 140, 0, 0.08); border-radius: 50%; filter: blur(60px);"></div>
+
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 1;">
+                                        <div style="max-width: 65%;">
+                                            <h1 style="color: {{ t.text }}; font-size: 46px; font-weight: 800; margin: 0 0 10px 0; line-height: 1.1; text-shadow: 0 2px 5px rgba(0,0,0,0.1);">{{ c.name }}</h1>
+                                            {% if c.contact_name %}
+                                                <p style="color: {{ t.accent }}; font-size: 22px; font-weight: 600; margin: 0; letter-spacing: 1.5px; text-transform: uppercase;">{{ c.contact_name }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            {% if c.logo %}
+                                                <div style="width: 140px; height: 140px; background: white; border-radius: 25px; padding: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
+                                                    <img src="{{ url_for('static', filename='uploads/' + c.logo) }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                                </div>
+                                            {% else %}
+                                                <div style="width: 120px; height: 120px; background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%); border-radius: 25px; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(255,140,0,0.3);">
+                                                    <span style="font-size: 60px; color: white;">💼</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div style="z-index: 1;">
+                                        <div style="width: 80px; height: 5px; background: {{ t.accent }}; margin-bottom: 25px; border-radius: 3px;"></div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                            {% if c.phone %}
+                                            <div style="display: flex; align-items: center; gap: 15px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: {{ t.accent }}; font-size: 18px;">📞</div>
+                                                <span style="color: {{ t.text }}; font-size: 20px; font-weight: 500;">{{ c.phone }}</span>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Aquí se muestra el Correo Electrónico en la imagen PNG -->
+                                            {% if c.email %}
+                                            <div style="display: flex; align-items: center; gap: 15px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: {{ t.accent }}; font-size: 18px;">✉️</div>
+                                                <span style="color: {{ t.text }}; font-size: 20px; font-weight: 500;">{{ c.email }}</span>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if c.whatsapp %}
+                                            <div style="display: flex; align-items: center; gap: 15px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: #25D366; font-size: 18px;">💬</div>
+                                                <span style="color: {{ t.text }}; font-size: 20px; font-weight: 500;">{{ c.whatsapp }}</span>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if c.address %}
+                                            <div style="display: flex; align-items: center; gap: 15px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: {{ t.accent }}; font-size: 18px;">📍</div>
+                                                <span style="color: {{ t.text }}; font-size: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;">{{ c.address }}</span>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if c.schedule %}
+                                            <div style="display: flex; align-items: center; gap: 15px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: {{ t.accent }}; font-size: 18px;">🕒</div>
+                                                <span style="color: {{ t.text }}; font-size: 20px; font-weight: 500;">{{ c.schedule }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="position: absolute; bottom: 20px; right: 25px; z-index: 1;">
+                                        <!-- ID agregado para cambiar el nombre/sello dinámicamente -->
+                                        <span id="exportFooter-{{ c.id }}" style="color: {{ t.footer_op }}; font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">ORANGE SYSTEM</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- FIN DEL LIENZO OCULTO -->
+
+                            <!-- TARJETA VISUAL EN EL DASHBOARD -->
+                            <div class="col-md-6 col-lg-4">
+                                <!-- Se tintó levemente el borde y fondo para que puedas identificar el color desde el dashboard -->
+                                <div class="glass-card p-3 position-relative overflow-hidden h-100 d-flex flex-column" style="background: {{ t.bg }}; border: 1px solid {{ t.accent }};">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <div class="pe-2">
+                                            <h6 class="fw-bold mb-1 text-truncate" style="color: {{ t.text }}; max-width: 180px;" title="{{ c.name }}">{{ c.name }}</h6>
+                                            {% if c.phone %}<p class="small mb-1" style="color: {{ t.text }}; opacity: 0.8;"><i class="bi bi-telephone"></i> {{ c.phone }}</p>{% endif %}
+                                            {% if c.email %}<p class="small mb-1 text-truncate" style="color: {{ t.text }}; opacity: 0.8; max-width: 180px;"><i class="bi bi-envelope"></i> {{ c.email }}</p>{% endif %}
+                                        </div>
+                                        <div>
+                                            {% if c.logo %}
+                                                <img src="{{ url_for('static', filename='uploads/' + c.logo) }}" class="rounded-circle shadow-sm bg-white p-1" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 50px;">
+                                                    <i class="bi bi-briefcase fs-4"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- NUEVO: Input para personalizar la marca de agua -->
+                                    <div class="mt-2 mb-1">
+                                        <div class="input-group input-group-sm opacity-75 shadow-sm">
+                                            <span class="input-group-text text-white border-0" style="background-color: {{ t.accent }}; font-size: 0.7rem;"><i class="bi bi-tag-fill"></i> Sello</span>
+                                            <input type="text" id="customFooter-{{ c.id }}" class="form-control glass-input fw-bold text-secondary" value="ORANGE SYSTEM" style="font-size: 0.75rem;" title="Texto que aparecerá como sello inferior en la imagen PNG">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-auto pt-2 d-flex gap-2 justify-content-between border-top" style="border-color: {{ t.accent }}!important; opacity: 0.9;">
+                                        <div class="btn-group w-100">
+                                            <button class="btn btn-sm btn-light fw-bold text-dark border" onclick="exportCardToPNG(event, {{ c.id }}, '{{ c.name|replace("'", "\\'") }}')">
+                                                <i class="bi bi-image" style="color: {{ t.accent }};"></i> PNG
+                                            </button>
+                                            <button class="btn btn-sm btn-light border" onclick="openEditCardModal({{ c.id }}, '{{ c.name|replace("'", "\\'") }}', '{{ c.phone|default('', true) }}', '{{ c.email|default('', true) }}', '{{ c.whatsapp|default('', true) }}', '{{ c.address|replace("'", "\\'")|default('', true) }}', '{{ c.schedule|replace("'", "\\'")|default('', true) }}', '{{ c.contact_name|replace("'", "\\'")|default('', true) }}', '{{ c.owner_id|default('', true) }}', '{{ c.theme|default('dark', true) }}')">
+                                                <i class="bi bi-pencil" style="color: {{ t.text }};"></i>
+                                            </button>
+                                            {% if c.whatsapp %}
+                                            <a href="https://wa.me/{{ c.whatsapp | replace('+', '') | replace(' ', '') }}" target="_blank" class="btn btn-sm btn-light border">
+                                                <i class="bi bi-whatsapp text-success"></i> WA
+                                            </a>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-light border text-danger" onclick="confirmDeleteStep1({{ c.id }}, 'card')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="text-center p-5 bg-light rounded-3 border">
+                                    <i class="bi bi-card-heading display-1 text-muted opacity-50"></i>
+                                    <p class="text-muted mt-3 mb-0">No hay tarjetas de presentación creadas aún.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- NOTIFICADOR FLASH -->
@@ -189,12 +372,10 @@
                                         </td>
                                         <td class="text-end">
                                             <div class="btn-group">
-                                                <!-- Botón para abrir Modal de Edición de Notificación -->
                                                 <button class="btn btn-sm btn-outline-secondary border-0" title="Editar" 
                                                         onclick="openEditNotifModal({{ n.id }}, '{{ n.message|replace("'", "\\'") }}', '{{ n.notification_type }}', '{{ n.start_date.strftime('%Y-%m-%d') }}', '{{ n.end_date.strftime('%Y-%m-%d') }}', '{{ n.visibility }}', {{ n.is_active }})">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <!-- Botón para Eliminar Notificación (Usa el mismo modal de 3 pasos) -->
                                                 <button class="btn btn-sm btn-outline-danger border-0" title="Eliminar" onclick="confirmDeleteStep1({{ n.id }}, 'notif')">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
@@ -236,7 +417,7 @@
     </div>
 </div>
 
-<!-- MODAL CONFIRMACIÓN 3 PASOS (Utilizado para usuarios y notificaciones) -->
+<!-- MODAL CONFIRMACIÓN 3 PASOS (Utilizado para usuarios, notificaciones y tarjetas) -->
 <div class="modal fade" id="modalConfirmDelete" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content glass-card border-0">
@@ -312,6 +493,159 @@
     </div>
 </div>
 
+<!-- MODAL CREAR TARJETA -->
+<div class="modal fade" id="modalNewCard" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-0 bg-orange text-white rounded-top">
+                <h5 class="modal-title fw-bold"><i class="bi bi-briefcase"></i> Nueva Tarjeta de Presentación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('main.create_card') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body mt-2">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nombre Empresa / Persona</label>
+                            <input type="text" name="name" class="form-control glass-input" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Logo (Opcional)</label>
+                            <input type="file" name="logo" class="form-control glass-input" accept="image/*">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Teléfono Principal</label>
+                            <input type="text" name="phone" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Número de WhatsApp</label>
+                            <input type="text" name="whatsapp" class="form-control glass-input" placeholder="Ej: +50688888888">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Correo Electrónico</label>
+                            <input type="email" name="email" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Dirección o Enlace (Google Maps)</label>
+                            <input type="text" name="address" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Horario de Atención</label>
+                            <input type="text" name="schedule" class="form-control glass-input" placeholder="Ej: L-V 8am a 5pm">
+                        </div>
+                        
+                        <!-- NUEVO: Selector de Color de Tarjeta -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Estilo de Color de Fondo</label>
+                            <select name="theme" class="form-select glass-input">
+                                <option value="light-blue">Pastel Azul Cielo</option>
+                                <option value="light-green">Pastel Verde Menta</option>
+                                <option value="light-purple">Pastel Morado Suave</option>
+                                <option value="light-peach">Pastel Melocotón</option>
+                                <option value="dark" selected>Oscuro Elegante (Original)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Nombre del Contacto</label>
+                            <input type="text" name="contact_name" class="form-control glass-input">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Vincular a un Usuario (Opcional)</label>
+                            <select name="owner_id" class="form-select glass-input">
+                                <option value="">-- Sin vincular --</option>
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.first_name }} {{ u.last_name1 }} ({{ u.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn bg-orange text-white rounded-pill shadow">Crear Tarjeta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR TARJETA -->
+<div class="modal fade" id="modalEditCard" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-0 bg-orange text-white rounded-top">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> Editar Tarjeta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="" method="POST" id="formEditCard" enctype="multipart/form-data">
+                <div class="modal-body mt-2">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nombre Empresa / Persona</label>
+                            <input type="text" name="name" id="editCardName" class="form-control glass-input" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Reemplazar Logo (Opcional)</label>
+                            <input type="file" name="logo" class="form-control glass-input" accept="image/*">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Teléfono Principal</label>
+                            <input type="text" name="phone" id="editCardPhone" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Número de WhatsApp</label>
+                            <input type="text" name="whatsapp" id="editCardWhatsapp" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Correo Electrónico</label>
+                            <input type="email" name="email" id="editCardEmail" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Dirección o Enlace</label>
+                            <input type="text" name="address" id="editCardAddress" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Horario de Atención</label>
+                            <input type="text" name="schedule" id="editCardSchedule" class="form-control glass-input">
+                        </div>
+                        
+                        <!-- NUEVO: Selector de Color de Tarjeta en Edición -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Estilo de Color de Fondo</label>
+                            <select name="theme" id="editCardTheme" class="form-select glass-input">
+                                <option value="light-blue">Pastel Azul Cielo</option>
+                                <option value="light-green">Pastel Verde Menta</option>
+                                <option value="light-purple">Pastel Morado Suave</option>
+                                <option value="light-peach">Pastel Melocotón</option>
+                                <option value="dark">Oscuro Elegante (Original)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Nombre del Contacto</label>
+                            <input type="text" name="contact_name" id="editCardContact" class="form-control glass-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Vincular a un Usuario (Opcional)</label>
+                            <select name="owner_id" id="editCardOwner" class="form-select glass-input">
+                                <option value="">-- Sin vincular --</option>
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.first_name }} {{ u.last_name1 }} ({{ u.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn bg-orange text-white rounded-pill shadow">Actualizar Tarjeta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL EDITAR NOTIFICACIÓN -->
 <div class="modal fade" id="modalEditNotif" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
@@ -381,9 +715,12 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Librería requerida para convertir HTML a PNG -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
     let currentTargetId = null;
-    let deleteType = null; // Puede ser 'user' o 'notif'
+    let deleteType = null; // Puede ser 'user', 'notif' o 'card'
 
     // --- MANEJO DEL MODAL DE BORRADO DE 3 PASOS ---
     function confirmDeleteStep1(id, type) {
@@ -407,21 +744,31 @@
         document.getElementById('step3').classList.remove('d-none');
     }
 
-    // Funcionalidad Real de Borrado Dinámico (sirve para ambos)
+    // Funcionalidad Real de Borrado Dinámico (sirve para los tres módulos)
     document.getElementById('btnFinalDelete').addEventListener('click', function() {
         const btn = this;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Borrando...';
         
-        // Define dinámicamente la URL en base a si se borra usuario o notificación
-        const deleteUrl = deleteType === 'user' ? `/delete_user/${currentTargetId}` : `/delete_notification/${currentTargetId}`;
+        let deleteUrl = '';
+        let hash = '';
+        
+        if (deleteType === 'user') {
+            deleteUrl = `/delete_user/${currentTargetId}`;
+            hash = '#usersContent';
+        } else if (deleteType === 'notif') {
+            deleteUrl = `/delete_notification/${currentTargetId}`;
+            hash = '#notifyContent';
+        } else if (deleteType === 'card') {
+            deleteUrl = `/delete_card/${currentTargetId}`;
+            hash = '#cardsContent';
+        }
         
         fetch(deleteUrl, { method: 'DELETE' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 // Mantiene al usuario en la misma pestaña tras borrar
-                const hash = deleteType === 'notif' ? '#notifyContent' : '#usersContent';
                 window.location.href = window.location.pathname + hash;
                 window.location.reload();
             } else {
@@ -464,6 +811,71 @@
         
         const modal = new bootstrap.Modal(document.getElementById('modalEditNotif'));
         modal.show();
+    }
+
+    // --- MANEJO DE EDICIÓN DE TARJETA ---
+    function openEditCardModal(id, name, phone, email, whatsapp, address, schedule, contact, owner_id, theme) {
+        document.getElementById('editCardName').value = name;
+        document.getElementById('editCardPhone').value = phone;
+        document.getElementById('editCardEmail').value = email;
+        document.getElementById('editCardWhatsapp').value = whatsapp;
+        document.getElementById('editCardAddress').value = address;
+        document.getElementById('editCardSchedule').value = schedule;
+        document.getElementById('editCardContact').value = contact;
+        document.getElementById('editCardOwner').value = owner_id;
+        
+        // Asignar el tema actual si existe en el HTML
+        if (theme && document.getElementById('editCardTheme')) {
+            document.getElementById('editCardTheme').value = theme;
+        }
+        
+        document.getElementById('formEditCard').action = `/edit_card/${id}`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalEditCard'));
+        modal.show();
+    }
+
+    // --- EXPORTAR TARJETA A PNG (Vistosa y Empresarial) ---
+    function exportCardToPNG(event, id, name) {
+        const element = document.getElementById('export-card-' + id);
+        if (!element) return;
+
+        // Leer el valor del input de la marca de agua y actualizar el lienzo oculto
+        const customFooterInput = document.getElementById('customFooter-' + id);
+        const exportFooterSpan = document.getElementById('exportFooter-' + id);
+        
+        if (customFooterInput && exportFooterSpan) {
+            exportFooterSpan.innerText = customFooterInput.value;
+        }
+
+        // Poner el botón en estado de carga
+        const btn = event.currentTarget;
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...';
+        btn.disabled = true;
+
+        html2canvas(element, {
+            scale: 2, // Excelente calidad para compartir
+            backgroundColor: null, // Absorbe directamente el gradiente hermoso
+            useCORS: true,
+            logging: false
+        }).then(canvas => {
+            const link = document.createElement('a');
+            // Nombre de archivo limpio
+            const cleanName = name.replace(/[^a-zA-Z0-9]/g, '_');
+            link.download = `Tarjeta_Orange_${cleanName}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            // Restaurar botón
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }).catch(err => {
+            console.error(err);
+            alert("⚠️ Hubo un error al generar la imagen. Intenta de nuevo.");
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        });
     }
 
     // Auto-abrir la pestaña correcta cuando la página se recarga o redirecciona

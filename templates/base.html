@@ -4,13 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Sistema Orange - {% block title %}{% endblock %}</title>
+    <!-- TITULO DINÁMICO -->
+    <title>{{ settings.app_name if settings and settings.app_name else 'La Tribu' }} - {% block title %}{% endblock %}</title>
  
     <!-- Estilos Personalizados -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     
-    <!-- Estilos exclusivos para la tarjeta de Cumpleaños -->
+    <!-- Estilos para Modo Claro y Tarjeta de Cumpleaños -->
     <style>
+        body.light-mode {
+            background: linear-gradient(135deg, #fdfbfb 0%, #ffefd5 100%) !important;
+            color: #1a1a1a !important;
+        }
+        body.light-mode .glass-card {
+            background: rgba(255, 255, 255, 0.7) !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .navbar { background: rgba(255, 255, 255, 0.9) !important; }
+
         .birthday-card-bg {
             background: linear-gradient(135deg, #ff9a44 0%, #fc6076 100%);
             border-radius: 20px;
@@ -25,13 +37,19 @@
 
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% if settings and settings.site_theme == 'light' %}light-mode{% endif %}">
 
-    <!-- NAVBAR DESKTOP (Solo visible en > 768px) -->
-    <nav class="navbar navbar-expand-lg desktop-navbar glass-card m-3 sticky-top">
+    <!-- NAVBAR DESKTOP -->
+    <nav class="navbar navbar-expand-lg desktop-navbar glass-card m-3 sticky-top d-none d-md-block">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-orange" href="{{ url_for('main.home') }}">
-                <i class="bi bi-lightning-charge-fill"></i> ORANGE SYS
+            <!-- LOGO DINÁMICO O ÍCONO -->
+            <a class="navbar-brand fw-bold text-orange d-flex align-items-center" href="{{ url_for('main.home') }}">
+                {% if settings and settings.app_logo %}
+                    <img src="{{ url_for('static', filename='uploads/' + settings.app_logo) }}" alt="Logo" style="height: 30px; object-fit: contain;" class="me-2 drop-shadow">
+                {% else %}
+                    <i class="bi bi-lightning-charge-fill me-2"></i> 
+                {% endif %}
+                {{ settings.app_name if settings and settings.app_name else 'La Tribu de Los Libres' }}
             </a>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
@@ -46,17 +64,14 @@
                             <a class="btn bg-orange text-white rounded-pill" href="{{ url_for('main.logout') }}">Salir</a>
                         </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.login') }}">Login</a>
-                        </li>
                         <li class="nav-item ms-lg-3">
-                            <a class="btn bg-orange text-white rounded-pill" href="{{ url_for('main.registro') }}">Registro</a>
+                            <a class="btn bg-orange text-white rounded-pill px-4" href="{{ url_for('main.login') }}">Login</a>
                         </li>
                     {% endif %}
                     <!-- Botón PWA Desktop -->
                     <li class="nav-item ms-2">
-                        <button id="pwa-install-btn" class="pwa-install-btn d-none">
-                            <i class="bi bi-download"></i> Instalar
+                        <button id="pwa-install-btn" class="btn btn-sm btn-outline-orange rounded-pill pwa-install-btn d-none">
+                            <i class="bi bi-download"></i> Instalar App
                         </button>
                     </li>
                 </ul>
@@ -64,8 +79,8 @@
         </div>
     </nav>
 
-    <!-- BARRA MÓVIL (Solo visible en < 768px) -->
-    <div class="mobile-navbar">
+    <!-- BARRA MÓVIL -->
+    <div class="mobile-navbar d-flex d-md-none">
         <a href="{{ url_for('main.home') }}" class="mobile-nav-item">
             <i class="bi bi-house-door"></i>
             <span>Inicio</span>
@@ -81,10 +96,9 @@
                 <span>Perfil</span>
             </a>
         {% endif %}
-        <!-- Botón PWA Móvil -->
         <a href="#" id="pwa-install-mobile" class="mobile-nav-item d-none">
-            <i class="bi bi-arrow-down-square"></i>
-            <span>App</span>
+            <i class="bi bi-download"></i>
+            <span>Instalar</span>
         </a>
     </div>
 
@@ -103,19 +117,17 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- BOTÓN VOLVER ATRÁS GLOBAL (Inferior Izquierdo) -->
+    <!-- BOTÓN VOLVER ATRÁS GLOBAL -->
     <button onclick="window.history.back()" class="btn-back-global" title="Volver atrás">
         <i class="bi bi-arrow-left-short fs-2"></i>
     </button>
 
-    <!-- MODAL DE CUMPLEAÑOS GLOBAL (Se inyecta automáticamente si hay cumpleañeros) -->
+    <!-- MODAL DE CUMPLEAÑOS GLOBAL -->
     {% if birthday_users %}
     <div class="modal fade" id="globalBirthdayModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 birthday-card-bg">
                 <div class="modal-body text-center p-5">
-                    
-                    <!-- Carrusel por si hay múltiples cumpleañeros el mismo día -->
                     <div id="carouselBirthdays" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-inner">
                             {% for bday_user in birthday_users %}
@@ -131,7 +143,6 @@
                                 
                                 <p class="lead fw-bold mb-4">¡Hoy es su día especial!</p>
                                 
-                                <!-- Validar que el usuario no se mande mensaje a sí mismo. Visitantes también pueden saludar -->
                                 {% if not current_user or current_user.id != bday_user.id %}
                                 <a href="https://wa.me/{{ bday_user.phone | replace('+', '') | replace(' ', '') }}?text={{ bday_user.whatsapp_msg }}" 
                                    target="_blank" class="btn btn-light text-orange rounded-pill btn-lg fw-bold shadow-sm w-100">
@@ -146,7 +157,6 @@
                             {% endfor %}
                         </div>
                         
-                        <!-- Controles del carrusel solo si hay más de 1 cumpleañero -->
                         {% if birthday_users|length > 1 %}
                         <button class="carousel-control-prev" type="button" data-bs-target="#carouselBirthdays" data-bs-slide="prev">
                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -159,7 +169,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Controles Inferiores (Cerrar / No volver a mostrar) -->
                     <div class="mt-5">
                         <div class="form-check d-flex justify-content-center align-items-center mb-3">
                             <input class="form-check-input me-2 birthday-check-scale" type="checkbox" id="dontShowBirthday">
@@ -169,14 +178,13 @@
                         </div>
                         <button type="button" class="btn btn-outline-light rounded-pill px-5" data-bs-dismiss="modal">Cerrar Tarjeta</button>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Scripts Base (Local) -->
+    <!-- Scripts Base -->
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/validaciones.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cropper.min.js') }}"></script>
@@ -186,19 +194,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             const birthdayModalEl = document.getElementById('globalBirthdayModal');
             if (birthdayModalEl) {
-                // Generar una llave única para HOY (ej. "hideBirthday_2026-03-16")
                 const today = new Date().toISOString().split('T')[0]; 
                 const storageKey = 'hideBirthday_' + today;
 
-                // Mostrar el modal si la caja NO fue marcada hoy
                 if (!localStorage.getItem(storageKey)) {
                     setTimeout(() => {
                         const bdayModal = new bootstrap.Modal(birthdayModalEl);
                         bdayModal.show();
-                    }, 1000); // Aparece 1 seg después de cargar la página
+                    }, 1000);
                 }
 
-                // Guardar la preferencia silenciosamente al cerrar el modal (botón o ESC)
                 birthdayModalEl.addEventListener('hide.bs.modal', function () {
                     const dontShow = document.getElementById('dontShowBirthday').checked;
                     if (dontShow) {

@@ -1,0 +1,87 @@
+<!-- recuperar.html -->
+{% extends 'base.html' %}
+
+{% block title %}Recuperar Contraseña{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-6">
+        <div class="glass-card p-4 p-md-5 animate__animated animate__fadeIn">
+            <div class="text-center mb-4">
+                <div class="bg-orange d-inline-block p-3 rounded-circle mb-3 shadow">
+                    <i class="bi bi-shield-lock-fill text-white fs-1"></i>
+                </div>
+                <h2 class="fw-bold text-orange">Validación de Identidad</h2>
+                <p class="text-muted">Para proteger tu cuenta, verifica tus datos personales. Si coinciden, generaremos una contraseña temporal.</p>
+            </div>
+
+            <form action="{{ url_for('main.recuperar') }}" method="POST">
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-envelope text-orange"></i></span>
+                        <input type="email" name="email" id="email" 
+                               class="form-control glass-input border-start-0 val-email" 
+                               placeholder="correo@ejemplo.com" required>
+                    </div>
+                </div>
+
+                <!-- Teléfono -->
+                <div class="mb-3">
+                    <label for="phone" class="form-label fw-bold">Teléfono Registrado</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-telephone text-orange"></i></span>
+                        <input type="text" name="phone" id="phone" 
+                               class="form-control glass-input border-start-0 val-numeric" 
+                               placeholder="Digita el número exacto que registraste" required>
+                    </div>
+                </div>
+
+                <!-- Fecha de Nacimiento -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Fecha de Nacimiento</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <select name="day" class="form-select glass-input" required>
+                                <option value="">Día</option>
+                                {% for d in range(1, 32) %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <select name="month" class="form-select glass-input" required>
+                                <option value="">Mes</option>
+                                {% set meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] %}
+                                {% for m in meses %}<option value="{{ loop.index }}">{{ m }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <select name="year" class="form-select glass-input" required>
+                                <option value="">Año</option>
+                                {% for y in range(2025, 1920, -1) %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn bg-orange text-white btn-lg rounded-pill shadow">
+                        Validar y Recuperar <i class="bi bi-unlock"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('main.login') }}" class="text-muted text-decoration-none small">
+                        <i class="bi bi-arrow-left"></i> Volver al Login
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Importamos las validaciones para que el teléfono solo acepte números -->
+<script src="{{ url_for('static', filename='js/validaciones.js') }}"></script>
+{% endblock %}

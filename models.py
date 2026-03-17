@@ -56,7 +56,7 @@ class BusinessCard(Base):
     schedule = Column(Text)
     contact_name = Column(String(150))
     
-    # NUEVO: Guarda el color de fondo elegido
+    # Guarda el color de fondo elegido
     theme = Column(String(50), default='dark') 
     
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -74,3 +74,11 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     visibility = Column(String(50), default='Todos')
     is_active = Column(Integer, default=1)
+
+class SystemSetting(Base):
+    """NUEVO: Almacena configuraciones globales del sistema (Nombre app, Tema, etc.)"""
+    __tablename__ = 'system_settings'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(String(255), nullable=True)

@@ -1,40 +1,162 @@
 /* main.css */
 
-/* Importación de animaciones para mantener el HTML limpio */
+/* --- IMPORTACIONES --- */
+@import url('index.css');
 @import url('bootstrap.css');
 @import url('bootstrap-icons.css');
+@import url('temas.css');   
+
+/* FUENTES */
+@import url('../webfonts/css/all.min.css');
 @import url('cropper.min.css');
-/* Variables de Tema: Orange Glassmorphism */
+
+/* --- VARIABLES DE TEMA (SOFT DARK MODE) --- */
 :root {
     --orange-primary: #ff8c00;
-    --orange-secondary: #ff4500;
-    --glass-bg: rgba(255, 255, 255, 0.25); /* Opacidad restaurada para un fondo limpio */
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --glass-blur: blur(10px);
-    --text-color: #333;
-    /* Degradado grisáceo-naranja leve */
-    --bg-gradient: linear-gradient(135deg, #e6e4e0 0%, #ffdfba 100%);
+    --orange-secondary: #e67e22;
+    
+    /* Fondo principal: Oscuro Suave (Pizarra/Carbón) */
+    --bg-gradient: linear-gradient(135deg, #2b2b36 0%, #1e1e24 100%);
+    --text-color: #e4e4e7;
+    --text-muted: #9ca3af;
+    
+    /* Efecto Glassmorphism */
+    --glass-bg: rgba(0, 0, 0, 0.35); 
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-blur: blur(12px);
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+    
+    /* Inputs y formularios oscuros */
+    --input-bg: rgba(0, 0, 0, 0.4);
+    --input-focus: rgba(255, 140, 0, 0.15);
+    --autofill-bg: #2b2b36; /* Fondo para autocompletado oscuro */
 }
 
+/* --- OVERRIDE MODO CLARO --- */
+body.light-mode {
+    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    --text-color: #1a1a1a;
+    --text-muted: #555555;
+    
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    
+    /* Inputs y formularios claros */
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-focus: rgba(255, 140, 0, 0.15);
+    --autofill-bg: #ffffff; /* Fondo para autocompletado claro (CORRECCIÓN APLICADA) */
+}
+
+/* --- ESTILOS BASE --- */
 body {
     background: var(--bg-gradient);
     background-attachment: fixed;
     min-height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color: var(--text-color);
+    transition: background 0.4s ease, color 0.4s ease;
+    margin: 0;
+    padding: 0;
 }
 
-/* Efecto Glassmorphism General */
+/* --- BLINDAJE CONTRA COLORES CLAROS NATIVOS DE BOOTSTRAP --- */
+
+/* Sobrescribir el fondo claro de Bootstrap (ej: paneles de crear notificaciones) */
+.bg-light {
+    background-color: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--text-color) !important;
+}
+
+/* Sobrescribir fondos de modales de Bootstrap */
+.modal-content {
+    background-color: transparent !important; /* Deja que el glass-card haga el trabajo */
+}
+
+/* Forzar que las Tablas sean adaptables al tema */
+.table {
+    color: var(--text-color) !important;
+}
+.table th, .table td {
+    border-color: var(--glass-border) !important;
+    background: transparent !important;
+    color: var(--text-color) !important;
+}
+.table-hover tbody tr:hover td {
+    background-color: rgba(128, 128, 128, 0.05) !important;
+}
+
+/* Las opciones de los selectores (dropdowns) deben adaptarse */
+body:not(.light-mode) select option {
+    background-color: #2b2b36;
+    color: #e4e4e7;
+}
+body.light-mode select option {
+    background-color: #ffffff;
+    color: #1a1a1a;
+}
+
+/* --- GLASSMORPHISM --- */
 .glass-card {
     background: var(--glass-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
-    border-radius: 15px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    border-radius: 18px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s ease, background 0.4s ease;
 }
 
-/* Botón Flotante Global (Inferior Izquierdo) */
+.glass-input {
+    background: var(--input-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--text-color) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(5px);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.glass-input:focus {
+    background: var(--input-bg) !important;
+    box-shadow: 0 0 0 0.25rem var(--input-focus) !important;
+    border-color: var(--orange-primary) !important;
+    color: var(--text-color) !important;
+}
+
+/* --- CORRECCIÓN GLOBAL DEL AUTOCOMPLETADO (LOGIN/REGISTRO) --- */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px var(--autofill-bg) inset !important;
+    -webkit-text-fill-color: var(--text-color) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* --- COMPONENTES --- */
+
+/* Navegación */
+.navbar {
+    transition: background 0.4s ease;
+}
+
+.desktop-navbar {
+    z-index: 1050;
+}
+
+.nav-link {
+    color: var(--text-color) !important;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.nav-link:hover {
+    opacity: 1;
+    color: var(--orange-primary) !important;
+}
+
+/* Botón Flotante Global */
 .btn-back-global {
     position: fixed;
     bottom: 20px;
@@ -47,45 +169,45 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     z-index: 1000;
-    transition: transform 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     border: none;
 }
 
 .btn-back-global:hover {
-    transform: scale(1.1);
+    transform: scale(1.15) rotate(-10deg);
     background-color: var(--orange-secondary);
 }
 
-/* PWA Install Button Style */
-.pwa-install-btn {
-    background: var(--orange-primary);
-    border-radius: 20px;
-    color: white;
-    padding: 5px 15px;
-    border: none;
+/* Botones Personalizados */
+.btn-xs {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
 }
 
-/* --- LÓGICA VISTA DUAL --- */
-
-/* Vista Desktop (Predeterminada) */
-@media (min-width: 769px) {
-    .mobile-navbar {
-        display: none !important;
-    }
-    .desktop-navbar {
-        display: block;
-    }
+.rounded-pill {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
 }
 
-/* Vista Móvil (< 768px) */
+/* Botones Light (Se oscurecen solo en el tema oscuro) */
+body:not(.light-mode) .btn-light {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: var(--text-color) !important;
+}
+body:not(.light-mode) .btn-light:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* --- VISTA MÓVIL --- */
 @media (max-width: 768px) {
     .desktop-navbar {
         display: none !important;
     }
     
-    /* Barra tipo móvil inferior */
     .mobile-navbar {
         display: flex;
         position: fixed;
@@ -93,13 +215,13 @@ body {
         left: 0;
         width: 100%;
         height: 70px;
-        background: rgba(255, 255, 255, 0.85);
+        background: var(--glass-bg);
         backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
         border-top: 1px solid var(--glass-border);
         justify-content: space-around;
         align-items: center;
         z-index: 2000;
-        /* Padding inferior extra para evitar superposición en Samsung/iOS */
         padding-bottom: env(safe-area-inset-bottom, 10px); 
     }
 
@@ -107,26 +229,53 @@ body {
         text-align: center;
         color: var(--orange-primary);
         text-decoration: none;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        opacity: 0.7;
+        transition: opacity 0.3s;
     }
 
     .mobile-nav-item i {
         display: block;
-        font-size: 1.5rem;
+        font-size: 1.6rem;
+        margin-bottom: -2px;
     }
 
-    /* Ajuste para que el contenido no quede oculto tras la barra móvil */
+    .mobile-nav-item:hover, .mobile-nav-item.active {
+        opacity: 1;
+    }
+
     body {
-        padding-bottom: 90px;
+        padding-bottom: 90px; 
     }
     
-    /* El botón de atrás se sube un poco para no chocar con la barra móvil */
     .btn-back-global {
-        bottom: 85px;
+        bottom: 85px; 
     }
 }
 
-/* Utilidades de Formato */
-.text-orange { color: var(--orange-primary); }
-.bg-orange { background-color: var(--orange-primary); }
-.border-orange { border-color: var(--orange-primary); }
+/* --- NOTIFICACIONES ESPECIALES --- */
+.notif-banner {
+    transition: transform 0.3s ease;
+}
+
+.notif-banner:hover {
+    transform: translateY(-2px);
+}
+
+/* --- UTILIDADES --- */
+.text-orange { color: var(--orange-primary) !important; }
+.bg-orange { background-color: var(--orange-primary) !important; }
+.border-orange { border-color: var(--orange-primary) !important; }
+
+.text-muted { color: var(--text-muted) !important; }
+
+/* Animaciones suaves para cambios de pestaña */
+.tab-pane {
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

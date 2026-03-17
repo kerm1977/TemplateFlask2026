@@ -7,35 +7,60 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from datetime import datetime
 import json
 import io
+import string
+import random
 from sqlalchemy import extract
 import urllib.parse
 
 # Importaciones locales
 from db import SessionLocal
-from models import User, ExtraField, Notification, BusinessCard
+from models import User, ExtraField, Notification, BusinessCard, SystemSetting
 from users import create_user, get_user_by_email, bcrypt, prepare_export_data, update_password
 
 main_bp = Blueprint('main', __name__)
 
-# --- INYECCIÓN DE DATOS GLOBALES (Cumpleaños y Usuario Actual) ---
+# --- FUNCIONES AUXILIARES ---
+def model_to_dict(obj):
+    """Convierte un objeto de SQLAlchemy a diccionario para poder exportarlo a JSON"""
+    data = {}
+    for c in obj.__table__.columns:
+        val = getattr(obj, c.name)
+        if isinstance(val, datetime):
+            data[c.name] = val.isoformat()
+        else:
+            data[c.name] = val
+    return data
+
+# --- INYECCIÓN DE DATOS GLOBALES (Configuración, Cumpleaños y Usuario) ---
 @main_bp.context_processor
 def inject_global_data():
     """Inyecta datos a todas las plantillas HTML automáticamente"""
     context = {
         'current_user': None,
-        'birthday_users': []
+        'birthday_users': [],
+        'settings': {}
     }
     
     db = SessionLocal()
     try:
-        today = datetime.now()
+        # 1. Cargar Ajustes del Sistema (Nombre App, Tema y Logo)
+        settings_list = db.query(SystemSetting).all()
+        settings_dict = {s.key: s.value for s in settings_list}
         
+        # Valores por defecto si no existen en la base de datos
+        context['settings'] = {
+            'app_name': settings_dict.get('app_name', 'La Tribu'),
+            'site_theme': settings_dict.get('site_theme', 'dark'),
+            'app_logo': settings_dict.get('app_logo', None)
+        }
+
+        # 2. Lógica de Cumpleaños
+        today = datetime.now()
         all_users = db.query(User).all()
         bday_users = []
         
         for u in all_users:
             if u.birth_date:
-                # Manejo robusto: Si SQLite devuelve un string en vez de objeto Datetime
                 b_date = u.birth_date
                 if isinstance(b_date, str):
                     try:
@@ -50,6 +75,7 @@ def inject_global_data():
                 
         context['birthday_users'] = bday_users
         
+        # 3. Usuario en sesión
         if 'user_id' in session:
             context['current_user'] = db.query(User).get(session['user_id'])
             
@@ -90,14 +116,12 @@ def home():
     db = SessionLocal()
     now = datetime.now()
     
-    # Consultar notificaciones activas
     query = db.query(Notification).filter(
         Notification.start_date <= now,
         Notification.end_date >= now,
         Notification.is_active == 1
     )
     
-    # Lógica de Visibilidad: Si no es admin, solo ve las de "Todos"
     user_role = session.get('role', 'Visitante')
     if user_role not in ['Superusuario', 'Administrador']:
         query = query.filter(Notification.visibility == 'Todos')
@@ -134,6 +158,56 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('main.login'))
+
+@main_bp.route('/recuperar', methods=['GET', 'POST'])
+def recuperar():
+    """Módulo de recuperación basado en validación de identidad (Sin Email Server)"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        phone = request.form.get('phone')
+        
+        day = request.form.get('day')
+        month = request.form.get('month')
+        year = request.form.get('year')
+        
+        db = SessionLocal()
+        user = get_user_by_email(db, email)
+        
+        if user:
+            try:
+                # Convertimos las fechas para compararlas exactamente
+                input_birth_date = datetime.strptime(f"{year}-{month}-{day}", '%Y-%m-%d').date()
+                
+                # Manejo seguro si la base de datos devuelve un datetime o un string (dependiendo del motor DB)
+                if isinstance(user.birth_date, datetime):
+                    user_birth_date = user.birth_date.date()
+                else:
+                    user_birth_date = datetime.strptime(user.birth_date.split(' ')[0], '%Y-%m-%d').date()
+                
+                # Si el teléfono y la fecha de nacimiento COINCIDEN EXACTAMENTE
+                if user.phone == phone and user_birth_date == input_birth_date:
+                    
+                    # Generar contraseña temporal alfanumérica de 6 caracteres
+                    temp_password = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                    
+                    # Actualizamos en DB
+                    user.password = bcrypt.generate_password_hash(temp_password).decode('utf-8')
+                    db.commit()
+                    
+                    flash(f'¡Identidad verificada! Tu contraseña temporal es: {temp_password} (Cámbiala en tu perfil)', 'success')
+                    db.close()
+                    return redirect(url_for('main.login'))
+                    
+            except Exception as e:
+                print(f"Error validando fechas: {e}")
+                pass
+        
+        db.close()
+        # Si falla en cualquier punto (correo no existe, mal teléfono o mala fecha) damos un error genérico por seguridad
+        flash('Los datos proporcionados no coinciden con nuestros registros. Intenta de nuevo.', 'danger')
+            
+    return render_template('recuperar.html')
+
 
 @main_bp.route('/registro', methods=['GET', 'POST'])
 def registro():
@@ -287,17 +361,15 @@ def dashboard():
     
     notifs = db.query(Notification).order_by(Notification.id.desc()).offset((page-1)*per_page).limit(per_page).all()
     
-    # CORRECCIÓN: Extraer tarjetas para pasarlas al Dashboard
     cards = db.query(BusinessCard).order_by(BusinessCard.id.desc()).all()
     
     now = datetime.now()
     
-    # CORRECCIÓN: Añadir cards=cards en el render_template
     html = render_template('dashboard.html', users=users, stats=stats, notifs=notifs, cards=cards, page=page, total_pages=total_pages, now=now)
     db.close()
     return html
 
-# --- RUTAS DE ADMINISTRACIÓN DE USUARIOS ---
+# --- RUTAS DE ADMINISTRACIÓN ---
 
 @main_bp.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @admin_required
@@ -348,6 +420,45 @@ def admin_edit_user(user_id):
     finally:
         db.close()
     return redirect(url_for('main.dashboard') + '#usersContent')
+
+# --- CONFIGURACIÓN GLOBAL (App Name, Tema y Logo) ---
+
+@main_bp.route('/admin/update_settings', methods=['POST'])
+@admin_required
+def update_settings():
+    db = SessionLocal()
+    try:
+        data = {
+            'app_name': request.form.get('app_name'),
+            'site_theme': request.form.get('site_theme')
+        }
+        
+        # PROCESAR EL NUEVO LOGO GLOBAL
+        logo_file = request.files.get('app_logo')
+        if logo_file and logo_file.filename != '':
+            os.makedirs('static/uploads', exist_ok=True)
+            filename = secure_filename(logo_file.filename)
+            unique_filename = f"syslogo_{int(datetime.now().timestamp())}_{filename}"
+            filepath = os.path.join('static/uploads', unique_filename)
+            logo_file.save(filepath)
+            data['app_logo'] = unique_filename
+            
+        for key, value in data.items():
+            if value is not None:  # Evita sobreescribir el logo actual con "None" si no suben uno nuevo
+                setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+                if setting:
+                    setting.value = value
+                else:
+                    db.add(SystemSetting(key=key, value=value))
+        db.commit()
+        flash('Configuración del sistema actualizada correctamente.', 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al guardar ajustes: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('main.dashboard') + '#settingsContent')
+
 
 # --- NOTIFICACIONES ---
 @main_bp.route('/create_notification', methods=['POST'])
@@ -484,7 +595,7 @@ def create_card():
             address=request.form.get('address'),
             schedule=request.form.get('schedule'),
             contact_name=request.form.get('contact_name'),
-            theme=request.form.get('theme', 'dark')  # CORRECCIÓN: Guardar el tema de color elegido
+            theme=request.form.get('theme', 'dark')
         )
         
         db.add(new_card)
@@ -512,7 +623,7 @@ def edit_card(card_id):
             card.address = request.form.get('address')
             card.schedule = request.form.get('schedule')
             card.contact_name = request.form.get('contact_name')
-            card.theme = request.form.get('theme', 'dark')  # CORRECCIÓN: Actualizar el tema
+            card.theme = request.form.get('theme', 'dark')
             
             owner_id_val = request.form.get('owner_id')
             card.owner_id = int(owner_id_val) if owner_id_val else None
@@ -554,7 +665,159 @@ def delete_card(card_id):
     finally:
         db.close()
 
-# --- FUNCIONES DE EXPORTACIÓN ---
+# --- GESTIÓN DE RESPALDOS (DB Y JSON) Y MODO OFFLINE ---
+
+@main_bp.route('/api/export_json')
+@admin_required
+def api_export_json():
+    """
+    Ruta silenciosa requerida por el Dashboard para poblar IndexedDB (Modo Offline).
+    Retorna la DB en formato JSON directamente.
+    """
+    db = SessionLocal()
+    try:
+        data = {
+            'users': [model_to_dict(u) for u in db.query(User).all()],
+            'cards': [model_to_dict(c) for c in db.query(BusinessCard).all()],
+            'notifs': [model_to_dict(n) for n in db.query(Notification).all()],
+            'settings': [model_to_dict(s) for s in db.query(SystemSetting).all()],
+            'extra_fields': [model_to_dict(e) for e in db.query(ExtraField).all()]
+        }
+        return jsonify(data)
+    finally:
+        db.close()
+
+@main_bp.route('/export_json')
+@admin_required
+def export_json():
+    """Permite al admin descargar TODA la base de datos como un archivo .json"""
+    db = SessionLocal()
+    try:
+        data = {
+            'users': [model_to_dict(u) for u in db.query(User).all()],
+            'cards': [model_to_dict(c) for c in db.query(BusinessCard).all()],
+            'notifs': [model_to_dict(n) for n in db.query(Notification).all()],
+            'settings': [model_to_dict(s) for s in db.query(SystemSetting).all()],
+            'extra_fields': [model_to_dict(e) for e in db.query(ExtraField).all()]
+        }
+        json_str = json.dumps(data, indent=4)
+        output = io.BytesIO(json_str.encode('utf-8'))
+        return send_file(
+            output,
+            mimetype='application/json',
+            as_attachment=True,
+            download_name=f"OrangeSys_Backup_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+        )
+    finally:
+        db.close()
+
+@main_bp.route('/import_json', methods=['POST'])
+@admin_required
+def import_json():
+    """Restaura por completo la DB desde un archivo JSON subido"""
+    if 'json_file' not in request.files:
+        flash('No se subió ningún archivo.', 'danger')
+        return redirect(url_for('main.dashboard') + '#settingsContent')
+        
+    file = request.files['json_file']
+    if file.filename == '':
+        flash('Archivo no válido.', 'danger')
+        return redirect(url_for('main.dashboard') + '#settingsContent')
+        
+    if file and file.filename.endswith('.json'):
+        db = SessionLocal()
+        try:
+            data = json.load(file)
+            
+            # 1. Limpiar TODAS las tablas existentes 
+            # (El orden importa por las llaves foráneas: Hijos primero, Padres después)
+            db.query(ExtraField).delete()
+            db.query(BusinessCard).delete()
+            db.query(Notification).delete()
+            db.query(SystemSetting).delete()
+            db.query(User).delete()
+            
+            # Función local para asegurar que las fechas string vuelvan a ser datetime
+            def parse_dates(item):
+                for k, v in item.items():
+                    if isinstance(v, str) and ('T' in v or '-' in v) and len(v) >= 10:
+                        try:
+                            item[k] = datetime.fromisoformat(v)
+                        except ValueError:
+                            pass
+                return item
+            
+            # 2. Reconstruir Tablas 
+            for u_data in data.get('users', []):
+                db.add(User(**parse_dates(u_data)))
+            db.flush() # Guardar usuarios para tener los IDs listos para las foráneas
+            
+            for e_data in data.get('extra_fields', []):
+                db.add(ExtraField(**parse_dates(e_data)))
+            for c_data in data.get('cards', []):
+                db.add(BusinessCard(**parse_dates(c_data)))
+            for n_data in data.get('notifs', []):
+                db.add(Notification(**parse_dates(n_data)))
+            for s_data in data.get('settings', []):
+                db.add(SystemSetting(**parse_dates(s_data)))
+                
+            db.commit()
+            flash('¡Sistema restaurado desde JSON con éxito!', 'success')
+        except Exception as e:
+            db.rollback()
+            flash(f'Error fatal al procesar el archivo JSON: {str(e)}', 'danger')
+        finally:
+            db.close()
+    else:
+        flash('El archivo debe ser estrictamente formato .json', 'danger')
+        
+    return redirect(url_for('main.dashboard') + '#settingsContent')
+
+@main_bp.route('/export_db')
+@admin_required
+def export_db():
+    """Descarga directamente el archivo local_database.db SQLite"""
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'local_database.db')
+    # Alternativa si el script está en la misma raíz:
+    if not os.path.exists(db_path):
+        db_path = os.path.join(os.path.dirname(__file__), 'local_database.db')
+        
+    if os.path.exists(db_path):
+        return send_file(
+            db_path,
+            as_attachment=True,
+            download_name=f"OrangeSys_DB_{datetime.now().strftime('%Y%m%d_%H%M')}.db"
+        )
+    else:
+        flash('No se encontró archivo físico de SQLite para descargar. (¿Estás usando MySQL en la nube?)', 'warning')
+        return redirect(url_for('main.dashboard') + '#settingsContent')
+
+@main_bp.route('/import_db', methods=['POST'])
+@admin_required
+def import_db():
+    """Sobrescribe el archivo SQLite actual con el subido"""
+    if 'db_file' not in request.files:
+        flash('No se subió ningún archivo.', 'danger')
+        return redirect(url_for('main.dashboard') + '#settingsContent')
+    
+    file = request.files['db_file']
+    if file.filename == '':
+        flash('Archivo no válido.', 'danger')
+        return redirect(url_for('main.dashboard') + '#settingsContent')
+        
+    if file and file.filename.endswith(('.db', '.sqlite')):
+        try:
+            db_path = os.path.join(os.path.dirname(__file__), 'local_database.db')
+            file.save(db_path)
+            flash('Base de datos reemplazada con éxito. RECOMIENDO REINICIAR EL SERVIDOR FLASK para evitar errores de caché.', 'success')
+        except Exception as e:
+            flash(f'Error al restaurar archivo físico DB: {str(e)}', 'danger')
+    else:
+        flash('Formato de archivo incorrecto. Debe ser .db o .sqlite', 'danger')
+        
+    return redirect(url_for('main.dashboard') + '#settingsContent')
+
+# --- FUNCIONES DE EXPORTACIÓN TXT y UTILIDADES DE CONTRASEÑA ---
 
 @main_bp.route('/export/txt')
 @admin_required

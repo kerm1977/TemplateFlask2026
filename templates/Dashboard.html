@@ -81,7 +81,10 @@
                     <button class="nav-link rounded-pill me-2" id="cards-tab" data-bs-toggle="pill" data-bs-target="#cardsContent" type="button">Tarjetas</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill" id="notify-tab" data-bs-toggle="pill" data-bs-target="#notifyContent" type="button">Notificador</button>
+                    <button class="nav-link rounded-pill me-2" id="notify-tab" data-bs-toggle="pill" data-bs-target="#notifyContent" type="button">Notificador</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill" id="settings-tab" data-bs-toggle="pill" data-bs-target="#settingsContent" type="button">Sistema</button>
                 </li>
             </ul>
 
@@ -113,7 +116,7 @@
                                     </td>
                                     <td class="small">{{ u.created_at.strftime('%d/%m/%Y') }}</td>
                                     <td>
-                                        <span class="badge bg-light text-dark border">{{ u.role }}</span>
+                                        <span class="badge bg-orange text-white rounded-pill shadow-sm px-3">{{ u.role }}</span>
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group">
@@ -131,7 +134,7 @@
                 <!-- GESTIÓN DE TARJETAS EMPRESARIALES -->
                 <div class="tab-pane fade" id="cardsContent" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0">Tarjetas de Presentación</h5>
+                        <h5 class="fw-bold mb-0 text-orange">Tarjetas de Presentación</h5>
                         <button class="btn bg-orange btn-sm text-white rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNewCard">
                             <i class="bi bi-plus-lg"></i> Nueva Tarjeta
                         </button>
@@ -141,14 +144,12 @@
                         {% if cards %}
                             {% for c in cards %}
                             
-                            <!-- Obtenemos el estilo visual de la tarjeta seleccionada (o el oscuro por defecto) -->
                             {% set t = theme_styles[c.theme] if c.theme in theme_styles else theme_styles['dark'] %}
                             
                             <!-- LIENZO OCULTO PARA EXPORTACIÓN PNG EMPRESARIAL -->
                             <div style="position: absolute; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;">
                                 <div id="export-card-{{ c.id }}" style="width: 800px; height: 450px; background: {{ t.bg }}; border-radius: 20px; padding: 45px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; position: relative; overflow: hidden;">
                                     
-                                    <!-- Efectos de luz fondo -->
                                     <div style="position: absolute; top: -80px; right: -50px; width: 300px; height: 300px; background: rgba(255, 140, 0, 0.15); border-radius: 50%; filter: blur(50px);"></div>
                                     <div style="position: absolute; bottom: -50px; left: -80px; width: 350px; height: 350px; background: rgba(255, 140, 0, 0.08); border-radius: 50%; filter: blur(60px);"></div>
 
@@ -182,7 +183,6 @@
                                             </div>
                                             {% endif %}
                                             
-                                            <!-- Aquí se muestra el Correo Electrónico en la imagen PNG -->
                                             {% if c.email %}
                                             <div style="display: flex; align-items: center; gap: 15px;">
                                                 <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ t.icon_bg }}; display: flex; align-items: center; justify-content: center; color: {{ t.accent }}; font-size: 18px;">✉️</div>
@@ -214,8 +214,7 @@
                                     </div>
                                     
                                     <div style="position: absolute; bottom: 20px; right: 25px; z-index: 1;">
-                                        <!-- ID agregado para cambiar el nombre/sello dinámicamente -->
-                                        <span id="exportFooter-{{ c.id }}" style="color: {{ t.footer_op }}; font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">ORANGE SYSTEM</span>
+                                        <span id="exportFooter-{{ c.id }}" style="color: {{ t.footer_op }}; font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">{{ settings.app_name if settings else 'ORANGE SYS' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -223,7 +222,6 @@
 
                             <!-- TARJETA VISUAL EN EL DASHBOARD -->
                             <div class="col-md-6 col-lg-4">
-                                <!-- Se tintó levemente el borde y fondo para que puedas identificar el color desde el dashboard -->
                                 <div class="glass-card p-3 position-relative overflow-hidden h-100 d-flex flex-column" style="background: {{ t.bg }}; border: 1px solid {{ t.accent }};">
                                     <div class="d-flex justify-content-between mb-2">
                                         <div class="pe-2">
@@ -235,24 +233,23 @@
                                             {% if c.logo %}
                                                 <img src="{{ url_for('static', filename='uploads/' + c.logo) }}" class="rounded-circle shadow-sm bg-white p-1" style="width: 50px; height: 50px; object-fit: cover;">
                                             {% else %}
-                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 50px;">
+                                                <div class="glass-card rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 50px;">
                                                     <i class="bi bi-briefcase fs-4"></i>
                                                 </div>
                                             {% endif %}
                                         </div>
                                     </div>
 
-                                    <!-- NUEVO: Input para personalizar la marca de agua -->
-                                    <div class="mt-2 mb-1">
+                                    <div class="mt-2 mb-2">
                                         <div class="input-group input-group-sm opacity-75 shadow-sm">
                                             <span class="input-group-text text-white border-0" style="background-color: {{ t.accent }}; font-size: 0.7rem;"><i class="bi bi-tag-fill"></i> Sello</span>
-                                            <input type="text" id="customFooter-{{ c.id }}" class="form-control glass-input fw-bold text-secondary" value="ORANGE SYSTEM" style="font-size: 0.75rem;" title="Texto que aparecerá como sello inferior en la imagen PNG">
+                                            <input type="text" id="customFooter-{{ c.id }}" class="form-control glass-input fw-bold" value="{{ settings.app_name if settings else 'ORANGE SYS' }}" style="font-size: 0.75rem; color: {{ t.text }}!important;" title="Texto inferior en la imagen PNG">
                                         </div>
                                     </div>
 
                                     <div class="mt-auto pt-2 d-flex gap-2 justify-content-between border-top" style="border-color: {{ t.accent }}!important; opacity: 0.9;">
                                         <div class="btn-group w-100">
-                                            <button class="btn btn-sm btn-light fw-bold text-dark border" onclick="exportCardToPNG(event, {{ c.id }}, '{{ c.name|replace("'", "\\'") }}')">
+                                            <button class="btn btn-sm btn-light fw-bold border" onclick="exportCardToPNG(event, {{ c.id }}, '{{ c.name|replace("'", "\\'") }}')">
                                                 <i class="bi bi-image" style="color: {{ t.accent }};"></i> PNG
                                             </button>
                                             <button class="btn btn-sm btn-light border" onclick="openEditCardModal({{ c.id }}, '{{ c.name|replace("'", "\\'") }}', '{{ c.phone|default('', true) }}', '{{ c.email|default('', true) }}', '{{ c.whatsapp|default('', true) }}', '{{ c.address|replace("'", "\\'")|default('', true) }}', '{{ c.schedule|replace("'", "\\'")|default('', true) }}', '{{ c.contact_name|replace("'", "\\'")|default('', true) }}', '{{ c.owner_id|default('', true) }}', '{{ c.theme|default('dark', true) }}')">
@@ -273,7 +270,7 @@
                             {% endfor %}
                         {% else %}
                             <div class="col-12">
-                                <div class="text-center p-5 bg-light rounded-3 border">
+                                <div class="text-center p-5 glass-card">
                                     <i class="bi bi-card-heading display-1 text-muted opacity-50"></i>
                                     <p class="text-muted mt-3 mb-0">No hay tarjetas de presentación creadas aún.</p>
                                 </div>
@@ -284,31 +281,30 @@
 
                 <!-- NOTIFICADOR FLASH -->
                 <div class="tab-pane fade" id="notifyContent" role="tabpanel">
-                    <!-- Formulario de Creación de Notificación -->
-                    <div class="bg-light p-3 rounded-3 mb-4 border">
+                    <div class="glass-card p-4 mb-4">
                         <h6 class="fw-bold text-orange mb-3"><i class="bi bi-megaphone"></i> Crear Nuevo Anuncio</h6>
                         <form action="{{ url_for('main.create_notification') }}" method="POST" enctype="multipart/form-data" class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold">Imagen (Opcional)</label>
+                                <label class="form-label small fw-bold text-muted">Imagen (Opcional)</label>
                                 <input type="file" name="image" class="form-control glass-input form-control-sm" accept="image/*">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold">Fecha Inicio</label>
+                                <label class="form-label small fw-bold text-muted">Fecha Inicio</label>
                                 <input type="date" name="start_date" class="form-control glass-input form-control-sm" required>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold">Fecha Fin</label>
+                                <label class="form-label small fw-bold text-muted">Fecha Fin</label>
                                 <input type="date" name="end_date" class="form-control glass-input form-control-sm" required>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold">Visibilidad</label>
+                                <label class="form-label small fw-bold text-muted">Visibilidad</label>
                                 <select name="visibility" class="form-select glass-input form-control-sm" required>
                                     <option value="Todos">Para Todos</option>
                                     <option value="Superusuarios">Solo Superusuarios</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold">Tipo de Notificación</label>
+                                <label class="form-label small fw-bold text-muted">Tipo de Notificación</label>
                                 <select name="notification_type" class="form-select glass-input form-control-sm" required>
                                     <option value="Aviso">Aviso General</option>
                                     <option value="Feriado">Feriado</option>
@@ -322,7 +318,7 @@
                                 </select>
                             </div>
                             <div class="col-md-7">
-                                <label class="form-label small fw-bold">Mensaje / Contenido</label>
+                                <label class="form-label small fw-bold text-muted">Mensaje / Contenido</label>
                                 <input type="text" name="message" class="form-control glass-input form-control-sm" placeholder="Ej: El sistema estará inactivo este martes..." required>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
@@ -331,7 +327,6 @@
                         </form>
                     </div>
 
-                    <!-- Lista de Notificaciones y Paginación -->
                     <div class="table-responsive">
                         <table class="table align-middle table-hover">
                             <thead>
@@ -351,7 +346,7 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 {% if n.image %}
-                                                    <img src="{{ url_for('static', filename='uploads/' + n.image) }}" class="rounded me-2" style="width: 40px; height: 30px; object-fit: cover;">
+                                                    <img src="{{ url_for('static', filename='uploads/' + n.image) }}" class="rounded me-2 border border-secondary" style="width: 40px; height: 30px; object-fit: cover;">
                                                 {% endif %}
                                                 <span class="small fw-bold text-truncate d-inline-block" style="max-width: 200px;">{{ n.message }}</span>
                                             </div>
@@ -361,13 +356,13 @@
                                         <td class="small">{{ n.visibility }}</td>
                                         <td>
                                             {% if n.is_active == 0 %}
-                                                <span class="badge bg-secondary">Inactiva</span>
+                                                <span class="badge glass-card border border-secondary text-muted">Inactiva</span>
                                             {% elif n.end_date < now %}
-                                                <span class="badge bg-danger">Expirada</span>
+                                                <span class="badge glass-card border border-danger text-danger">Expirada</span>
                                             {% elif n.start_date > now %}
-                                                <span class="badge bg-warning text-dark">Programada</span>
+                                                <span class="badge glass-card border border-warning text-warning">Programada</span>
                                             {% else %}
-                                                <span class="badge bg-success">Activa</span>
+                                                <span class="badge glass-card border border-success text-success">Activa</span>
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
@@ -392,7 +387,6 @@
                         </table>
                     </div>
 
-                    <!-- Paginación -->
                     {% if total_pages and total_pages > 1 %}
                     <nav>
                         <ul class="pagination justify-content-center mt-3">
@@ -412,12 +406,113 @@
                     {% endif %}
                 </div>
 
+                <!-- AJUSTES DEL SISTEMA -->
+                <div class="tab-pane fade" id="settingsContent" role="tabpanel">
+                    <div class="row g-4">
+                        <!-- Configuraciones Visuales -->
+                        <div class="col-12">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold text-orange mb-4"><i class="bi bi-gear-fill"></i> Configuración de la App</h5>
+                                <form action="{{ url_for('main.update_settings') }}" method="POST" enctype="multipart/form-data" class="row g-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Nombre de la Aplicación</label>
+                                        <input type="text" name="app_name" class="form-control glass-input" value="{{ settings.app_name if settings else 'La Tribu' }}" placeholder="Ej: Mi Negocio" required>
+                                        <div class="form-text text-muted">Este nombre aparecerá en la pestaña del navegador y la barra superior.</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Tema Visual del Sitio</label>
+                                        <select name="site_theme" class="form-select glass-input">
+                                            <option value="dark" {% if settings and settings.site_theme == 'dark' %}selected{% endif %}>Modo Oscuro Suave</option>
+                                            <option value="light" {% if settings and settings.site_theme == 'light' %}selected{% endif %}>Modo Claro</option>
+                                        </select>
+                                        <div class="form-text text-muted">Cambia la apariencia de todo el sistema.</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Logo de la Aplicación (Opcional)</label>
+                                        <input type="file" name="app_logo" class="form-control glass-input" accept="image/*">
+                                        <div class="form-text text-muted">Reemplazará el ícono del rayo en la barra de navegación.</div>
+                                        {% if settings and settings.app_logo %}
+                                            <div class="mt-2">
+                                                <small class="text-muted">Logo actual:</small><br>
+                                                <img src="{{ url_for('static', filename='uploads/' + settings.app_logo) }}" alt="Logo actual" class="rounded shadow-sm" style="max-height: 50px;">
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <button type="submit" class="btn bg-orange text-white rounded-pill px-5 shadow">Guardar Cambios Visuales</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Sincronización Offline -->
+                        <div class="col-12">
+                            <hr class="border-orange my-2">
+                            <h5 class="fw-bold text-orange mb-3"><i class="bi bi-wifi-off"></i> Modo Offline (IndexedDB)</h5>
+                            <div class="glass-card p-4 text-center">
+                                <p class="text-muted mb-3">Guarda toda la información actual (Usuarios, Tarjetas y Notificaciones) en el almacenamiento interno de este dispositivo para que la aplicación siga funcionando sin conexión a internet.</p>
+                                <button type="button" id="btnSyncOffline" class="btn bg-orange text-white rounded-pill px-4 shadow fw-bold">
+                                    <i class="bi bi-cloud-arrow-down-fill"></i> Activar Modo Offline y Sincronizar
+                                </button>
+                                <p id="syncStatus" class="small mt-3 fw-bold d-none mb-0"></p>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Respaldo y Recuperación (Base de Datos / JSON) -->
+                        <div class="col-12">
+                            <hr class="border-orange my-2">
+                            <h5 class="fw-bold text-orange mb-3"><i class="bi bi-database-fill-down"></i> Respaldo y Recuperación de Datos</h5>
+                            <div class="row g-4">
+                                <!-- Exportar (Respaldar) -->
+                                <div class="col-md-6">
+                                    <div class="glass-card p-4 h-100">
+                                        <h6 class="fw-bold"><i class="bi bi-cloud-download text-success"></i> Respaldar / Exportar</h6>
+                                        <p class="small text-muted mb-4">Descarga una copia completa de tu información para mantenerla segura.</p>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('main.export_db') }}" class="btn btn-outline-success rounded-pill">
+                                                <i class="bi bi-filetype-sql"></i> Descargar Respaldo DB (.db)
+                                            </a>
+                                            <a href="{{ url_for('main.export_json') }}" class="btn btn-outline-primary rounded-pill">
+                                                <i class="bi bi-filetype-json"></i> Exportar Todo a JSON
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Importar (Recuperar) -->
+                                <div class="col-md-6">
+                                    <div class="glass-card p-4 h-100">
+                                        <h6 class="fw-bold"><i class="bi bi-cloud-upload text-danger"></i> Recuperar / Importar</h6>
+                                        <p class="small text-muted mb-3">Restaura el sistema desde un archivo de respaldo previo. <strong class="text-warning">¡Esta acción sobrescribirá los datos actuales!</strong></p>
+                                        
+                                        <form action="{{ url_for('main.import_db') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+                                            <div class="input-group input-group-sm shadow-sm">
+                                                <input type="file" name="db_file" class="form-control glass-input" accept=".db,.sqlite" required title="Selecciona un archivo .db">
+                                                <button type="submit" class="btn btn-danger text-white"><i class="bi bi-upload"></i> Restaurar DB</button>
+                                            </div>
+                                        </form>
+                                        
+                                        <form action="{{ url_for('main.import_json') }}" method="POST" enctype="multipart/form-data">
+                                            <div class="input-group input-group-sm shadow-sm">
+                                                <input type="file" name="json_file" class="form-control glass-input" accept=".json" required title="Selecciona un archivo .json">
+                                                <button type="submit" class="btn btn-primary text-white"><i class="bi bi-upload"></i> Importar JSON</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL CONFIRMACIÓN 3 PASOS (Utilizado para usuarios, notificaciones y tarjetas) -->
+<!-- MODAL CONFIRMACIÓN 3 PASOS -->
 <div class="modal fade" id="modalConfirmDelete" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content glass-card border-0">
@@ -533,7 +628,7 @@
                             <input type="text" name="schedule" class="form-control glass-input" placeholder="Ej: L-V 8am a 5pm">
                         </div>
                         
-                        <!-- NUEVO: Selector de Color de Tarjeta -->
+                        <!-- Selector de Color de Tarjeta -->
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Estilo de Color de Fondo</label>
                             <select name="theme" class="form-select glass-input">
@@ -610,7 +705,7 @@
                             <input type="text" name="schedule" id="editCardSchedule" class="form-control glass-input">
                         </div>
                         
-                        <!-- NUEVO: Selector de Color de Tarjeta en Edición -->
+                        <!-- Selector de Color de Tarjeta en Edición -->
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Estilo de Color de Fondo</label>
                             <select name="theme" id="editCardTheme" class="form-select glass-input">
@@ -715,14 +810,12 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Librería requerida para convertir HTML a PNG -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
     let currentTargetId = null;
-    let deleteType = null; // Puede ser 'user', 'notif' o 'card'
+    let deleteType = null; 
 
-    // --- MANEJO DEL MODAL DE BORRADO DE 3 PASOS ---
     function confirmDeleteStep1(id, type) {
         currentTargetId = id;
         deleteType = type;
@@ -744,7 +837,6 @@
         document.getElementById('step3').classList.remove('d-none');
     }
 
-    // Funcionalidad Real de Borrado Dinámico (sirve para los tres módulos)
     document.getElementById('btnFinalDelete').addEventListener('click', function() {
         const btn = this;
         btn.disabled = true;
@@ -768,7 +860,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Mantiene al usuario en la misma pestaña tras borrar
                 window.location.href = window.location.pathname + hash;
                 window.location.reload();
             } else {
@@ -784,7 +875,6 @@
         });
     });
 
-    // --- MANEJO DE EDICIÓN DE USUARIO ---
     function openEditUserModal(id, fname, lname1, lname2, email, role) {
         document.getElementById('editFirstName').value = fname;
         document.getElementById('editLastName1').value = lname1;
@@ -798,7 +888,6 @@
         editModal.show();
     }
 
-    // --- MANEJO DE EDICIÓN DE NOTIFICACIÓN ---
     function openEditNotifModal(id, msg, type, start, end, vis, isActive) {
         document.getElementById('editNotifMsg').value = msg;
         document.getElementById('editNotifType').value = type;
@@ -813,7 +902,6 @@
         modal.show();
     }
 
-    // --- MANEJO DE EDICIÓN DE TARJETA ---
     function openEditCardModal(id, name, phone, email, whatsapp, address, schedule, contact, owner_id, theme) {
         document.getElementById('editCardName').value = name;
         document.getElementById('editCardPhone').value = phone;
@@ -824,7 +912,6 @@
         document.getElementById('editCardContact').value = contact;
         document.getElementById('editCardOwner').value = owner_id;
         
-        // Asignar el tema actual si existe en el HTML
         if (theme && document.getElementById('editCardTheme')) {
             document.getElementById('editCardTheme').value = theme;
         }
@@ -835,12 +922,10 @@
         modal.show();
     }
 
-    // --- EXPORTAR TARJETA A PNG (Vistosa y Empresarial) ---
     function exportCardToPNG(event, id, name) {
         const element = document.getElementById('export-card-' + id);
         if (!element) return;
 
-        // Leer el valor del input de la marca de agua y actualizar el lienzo oculto
         const customFooterInput = document.getElementById('customFooter-' + id);
         const exportFooterSpan = document.getElementById('exportFooter-' + id);
         
@@ -848,26 +933,23 @@
             exportFooterSpan.innerText = customFooterInput.value;
         }
 
-        // Poner el botón en estado de carga
         const btn = event.currentTarget;
         const originalHTML = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...';
         btn.disabled = true;
 
         html2canvas(element, {
-            scale: 2, // Excelente calidad para compartir
-            backgroundColor: null, // Absorbe directamente el gradiente hermoso
+            scale: 2, 
+            backgroundColor: null, 
             useCORS: true,
             logging: false
         }).then(canvas => {
             const link = document.createElement('a');
-            // Nombre de archivo limpio
             const cleanName = name.replace(/[^a-zA-Z0-9]/g, '_');
             link.download = `Tarjeta_Orange_${cleanName}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
             
-            // Restaurar botón
             btn.innerHTML = originalHTML;
             btn.disabled = false;
         }).catch(err => {
@@ -878,7 +960,81 @@
         });
     }
 
-    // Auto-abrir la pestaña correcta cuando la página se recarga o redirecciona
+    document.getElementById('btnSyncOffline').addEventListener('click', async function() {
+        const btn = this;
+        const statusEl = document.getElementById('syncStatus');
+        const originalHTML = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sincronizando...';
+        
+        statusEl.classList.remove('d-none', 'text-success', 'text-danger');
+        statusEl.classList.add('text-warning');
+        statusEl.innerHTML = '<i class="bi bi-hourglass-split"></i> Descargando datos del servidor...';
+
+        try {
+            const response = await fetch('/api/export_json');
+            
+            if (!response.ok) {
+                if(response.status === 404) throw new Error("La ruta '/api/export_json' no ha sido creada en el servidor aún.");
+                throw new Error("Error en la respuesta del servidor.");
+            }
+            
+            const data = await response.json();
+
+            const request = indexedDB.open('OrangeSysOfflineDB', 1);
+
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('users')) db.createObjectStore('users', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('cards')) db.createObjectStore('cards', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('notifs')) db.createObjectStore('notifs', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'id' });
+            };
+
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                const tx = db.transaction(['users', 'cards', 'notifs', 'settings'], 'readwrite');
+
+                const stores = ['users', 'cards', 'notifs', 'settings'];
+                stores.forEach(storeName => {
+                    const store = tx.objectStore(storeName);
+                    store.clear();
+                    if (data[storeName]) {
+                        data[storeName].forEach(item => store.add(item));
+                    }
+                });
+
+                tx.oncomplete = function() {
+                    statusEl.classList.remove('text-warning');
+                    statusEl.classList.add('text-success');
+                    statusEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> ¡Sincronización exitosa! La app está lista para usarse sin internet.';
+                    btn.innerHTML = '<i class="bi bi-wifi-off"></i> Sincronizado (Offline Listo)';
+                    
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                    }, 4000);
+                };
+
+                tx.onerror = function() {
+                    throw new Error("Error interno al escribir en IndexedDB.");
+                };
+            };
+
+            request.onerror = function() {
+                throw new Error("Permiso denegado para usar el almacenamiento local del navegador.");
+            };
+
+        } catch (error) {
+            statusEl.classList.remove('text-warning');
+            statusEl.classList.add('text-danger');
+            statusEl.innerHTML = `<i class="bi bi-x-circle-fill"></i> Falló la sincronización: ${error.message}`;
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    });
+
     document.addEventListener("DOMContentLoaded", function() {
         if(window.location.hash) {
             let targetBtn = document.querySelector(`[data-bs-target="${window.location.hash}"]`);

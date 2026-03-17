@@ -3,6 +3,7 @@
 /* Importación de animaciones para mantener el HTML limpio */
 @import url('bootstrap.css');
 @import url('bootstrap-icons.css');
+@import url('cropper.min.css');
 /* Variables de Tema: Orange Glassmorphism */
 :root {
     --orange-primary: #ff8c00;

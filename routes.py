@@ -1,5 +1,8 @@
 # routes.py
 
+import os
+import base64
+from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from datetime import datetime
 import json
@@ -85,6 +88,30 @@ def registro():
     if request.method == 'POST':
         db = SessionLocal()
         try:
+            # Procesar el Avatar (Acepta archivo crudo o base64 recortado del editor)
+            avatar_filename = 'default.png'
+            avatar_base64 = request.form.get('avatar_base64')
+            avatar_file = request.files.get('avatar')
+            
+            os.makedirs('static/img', exist_ok=True) # Asegurar que la carpeta existe
+
+            if avatar_base64:
+                # Si viene del editor visual (Cropper)
+                header, encoded = avatar_base64.split(",", 1)
+                file_ext = header.split('/')[1].split(';')[0]
+                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}.{file_ext}"
+                filepath = os.path.join('static/img', unique_filename)
+                with open(filepath, "wb") as fh:
+                    fh.write(base64.b64decode(encoded))
+                avatar_filename = unique_filename
+            elif avatar_file and avatar_file.filename != '':
+                # Si viene como archivo tradicional sin editar
+                filename = secure_filename(avatar_file.filename)
+                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}_{filename}"
+                filepath = os.path.join('static/img', unique_filename)
+                avatar_file.save(filepath)
+                avatar_filename = unique_filename
+
             # Procesar datos básicos
             user_data = {
                 'first_name': request.form.get('first_name'),
@@ -93,7 +120,8 @@ def registro():
                 'email': request.form.get('email'),
                 'phone': request.form.get('phone'),
                 'birth_date': datetime.strptime(f"{request.form.get('year')}-{request.form.get('month')}-{request.form.get('day')}", '%Y-%m-%d'),
-                'password': request.form.get('password')
+                'password': request.form.get('password'),
+                'avatar': avatar_filename
             }
             
             # Procesar campos extra dinámicos
@@ -136,6 +164,29 @@ def editar_perfil():
     
     if request.method == 'POST':
         try:
+            # Procesar el Avatar (Acepta archivo crudo o base64 recortado del editor)
+            avatar_base64 = request.form.get('avatar_base64')
+            avatar_file = request.files.get('avatar')
+            
+            os.makedirs('static/img', exist_ok=True)
+
+            if avatar_base64:
+                # Si viene del editor visual (Cropper)
+                header, encoded = avatar_base64.split(",", 1)
+                file_ext = header.split('/')[1].split(';')[0]
+                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}.{file_ext}"
+                filepath = os.path.join('static/img', unique_filename)
+                with open(filepath, "wb") as fh:
+                    fh.write(base64.b64decode(encoded))
+                user.avatar = unique_filename
+            elif avatar_file and avatar_file.filename != '':
+                # Si viene como archivo tradicional
+                filename = secure_filename(avatar_file.filename)
+                unique_filename = f"avatar_{int(datetime.utcnow().timestamp())}_{filename}"
+                filepath = os.path.join('static/img', unique_filename)
+                avatar_file.save(filepath)
+                user.avatar = unique_filename
+
             # Actualizar datos básicos
             user.first_name = request.form.get('first_name')
             user.last_name1 = request.form.get('last_name1')

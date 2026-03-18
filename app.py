@@ -10,6 +10,9 @@ from models import User
 from users import bcrypt
 from routes import main_bp
 
+# IMPORTAMOS EL NUEVO BLUEPRINT DEL CALENDARIO
+from calendario import calendario_bp
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
@@ -99,6 +102,9 @@ with app.app_context():
 
 # Registrar los Blueprints (Rutas)
 app.register_blueprint(main_bp)
+# REGISTRAMOS EL CALENDARIO PARA QUE FUNCIONE EN LA APP
+app.register_blueprint(calendario_bp)
+
 
 if __name__ == '__main__':
     # Configuración para correr localmente o en red
